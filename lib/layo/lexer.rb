@@ -11,6 +11,7 @@ module Layo
       self.input = io unless io.nil?
     end
 
+    # Sets input stream and resets variables
     def input=(io)
       @input, @line_no, @last_lexeme = io, 0, "\n"
     end
@@ -19,7 +20,15 @@ module Layo
       char == ' ' or char == "\t"
     end
 
+    # Tells whether there is a lexeme delimiter at position pos in current line
+    def lexeme_delimiter?(pos)
+      @line[pos] == '!' or @line[pos] == ',' or
+      @line[pos] == "\n" or space?(@line[pos]) or
+      @line[pos] == '…' or @line[pos, 3] == '...'
+    end
+
     # Reads and returns next lexeme
+    # returns nil if there is no lexeme left
     def next
       while true
         @line = next_line if @line_no.zero? or @pos > @line.length - 1
@@ -65,16 +74,33 @@ module Layo
         end
 
         if @line[@pos] == "\n" or @line[@pos] == '!'
+          # Handle newline and bang separately
           lexeme = [@line[@pos], @line_no, @pos + 1]
           @pos += 1
         elsif @line[@pos] == ','
+          # Comma is a virtual newline
           lexeme = ["\n", @line_no, @pos + 1]
           @pos += 1
+        elsif @line[@pos] == '"'
+          # Strings begin with "
+          # Need to handle empty strings separately
+          if @line[@pos + 1] == '"'
+            string = '""'
+          else
+            m = @line.match(/[^:]"/, @pos + 1)
+            string = @line[@pos..m.end(0) - 1] unless m.nil?
+          end
+          # String must be followed by an allowed lexeme delimiter
+          if string.nil? or !lexeme_delimiter?(@pos + string.length)
+            raise SyntaxError.new(@line_no, @pos, 'Unterminated string constant')
+          end
+          lexeme = [string, @line_no, @pos + 1]
+          @pos = @pos + string.length
         else
+          # Grab as much characters as we can until meeting lexeme delimiter
+          # Treat what we grabbed as a lexeme
           seq, pos = '', @pos + 1
-          until @line[@pos] == '!' or @line[@pos] == ',' or 
-            @line[@pos] == "\n" or space?(@line[@pos]) or 
-            @line[@pos] == '…' or @line[@pos, 3] == '...'
+          until lexeme_delimiter?(@pos)
             seq += @line[@pos]
             @pos += 1
           end
@@ -89,6 +115,7 @@ module Layo
 
     # Reads and returns next line from input stream. Converts newline
     # character to \n
+    # returns nil upon reaching EOF
     def next_line
       line, ch, @pos, @line_no = '', '', 0, @line_no + 1
       until ch == "\r" or ch == "\n" or ch.nil?

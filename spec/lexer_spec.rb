@@ -105,4 +105,50 @@ TLDR, DEF")
       lambda { @lexer.next }.must_raise Layo::SyntaxError
     end
   end
+
+  describe 'when sees double quotation marks (")' do
+    it 'should treat everything till another " character as a string lexeme' do
+      @lexer.input = StringIO.new('"hello world"')
+      @lexer.next.must_equal ['"hello world"', 1, 1]
+    end
+
+    it 'should treat :" as an escape character' do
+      @lexer.input = StringIO.new('"hello :" world"')
+      @lexer.next.must_equal ['"hello :" world"', 1, 1]
+    end
+
+    it 'should handle empty string' do
+      @lexer.input = StringIO.new('""')
+      @lexer.next.must_equal ['""', 1, 1]
+    end
+
+    it 'should raise a syntax error if string is unterminated' do
+      @lexer.input = StringIO.new(' "bla bla bla ')
+      lambda { @lexer.next }.must_raise Layo::SyntaxError
+    end
+
+    it 'should raise a syntax error if string terminator is not followed by allowed delimiter' do
+      @lexer.input = StringIO.new('"a","b" "c"!"d"...
+"e"…
+"f"
+"g"bla')
+      # OK, since "a" is followed by a ','
+      @lexer.next.must_equal ['"a"', 1, 1]
+      @lexer.next.must_equal ["\n", 1, 4]
+      # OK, since "b" is followed by a space
+      @lexer.next.must_equal ['"b"', 1, 5]
+      # OK, since "c" is followed by a '!'
+      @lexer.next.must_equal ['"c"', 1, 9]
+      @lexer.next.must_equal ['!', 1, 12]
+      # OK, since "d" is followed by a '...'
+      @lexer.next.must_equal ['"d"', 1, 13]
+      # OK, since "e" is followed by a '…'
+      @lexer.next.must_equal ['"e"', 2, 1]
+      # OK, since "f" is followed by a newline
+      @lexer.next.must_equal ['"f"', 3, 1]
+      @lexer.next.must_equal ["\n", 3, 4]
+      # Error, since "g" is not followed by any allowed delimiter
+      lambda { @lexer.next }.must_raise Layo::SyntaxError
+    end
+  end
 end
