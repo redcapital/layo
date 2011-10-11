@@ -47,13 +47,19 @@ module Layo
         end
         # and multiline ones
         if @last_lexeme == "\n" && @line[@pos, 4] == 'OBTW'
+          tldr_found, line_no, pos = false, @line_no, @pos
           while true
             @line = next_line
+            break if @line.nil?
             m = @line.chomp.match(/(^|\s+)TLDR\s*(,|$)/)
             unless m.nil?
+              tldr_found = true
               @pos = m.end(0)
               break
             end
+          end
+          unless tldr_found
+            raise SyntaxError.new(line_no, pos, 'Unterminated multiline comment')
           end
           next
         end

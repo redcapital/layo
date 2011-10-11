@@ -97,5 +97,12 @@ TLDR, DEF")
       @lexer.next.must_equal ["\n", 1, 4]
       @lexer.next.must_equal ['DEF', 4, 7]
     end
+
+    it 'should raise a syntax error when there is not TLDR' do
+      @lexer.input = StringIO.new('OBTW
+        comment. no tldr
+      ')
+      lambda { @lexer.next }.must_raise Layo::SyntaxError
+    end
   end
 end
