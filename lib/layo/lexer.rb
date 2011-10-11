@@ -32,9 +32,10 @@ module Layo
 
         # Skip triple dot characters (join lines)
         if @line[@pos, 4] == "...\n" or @line[@pos, 2] == "…\n"
+          line_no, pos = @line_no, @pos
           @line, @pos = next_line, 0
-          if !@line.nil? && @line.strip.empty?
-            raise SyntaxError, 'Line continuation may not be followed by an empty line'
+          if @line.nil? or @line.strip.empty?
+            raise SyntaxError.new(line_no, pos, 'Line continuation may not be followed by an empty line')
           end
           next
         end

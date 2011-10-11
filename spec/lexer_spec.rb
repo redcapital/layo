@@ -58,6 +58,12 @@ describe Lexer do
       @lexer.next
       lambda { @lexer.next }.must_raise Layo::SyntaxError
     end
+
+    it 'should raise a syntax error when there is not subsequent line' do
+      @lexer.input = StringIO.new("abc...\n")
+      @lexer.next
+      lambda { @lexer.next }.must_raise Layo::SyntaxError
+    end
   end
 
   describe 'when sees BTW' do
