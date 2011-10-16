@@ -4,6 +4,8 @@ module Layo
   class Lexer
     # Input stream. Must be an instance of IO class (File, StringIO)
     attr_accessor :input
+    # List of already read lexemes
+    attr_accessor :lexemes
     # Current line number (1-based) and position (0-based) of cursor
     attr_reader :pos, :line_no
 
@@ -13,7 +15,13 @@ module Layo
 
     # Sets input stream and resets variables
     def input=(io)
-      @input, @line_no, @last_lexeme = io, 0, "\n"
+      @input = io
+      reset
+    end
+
+    # Resets this lexer instance
+    def reset
+      @line_no, @last_lexeme, self.lexemes = 0, "\n", []
     end
 
     def space?(char)
@@ -30,6 +38,21 @@ module Layo
     # Reads and returns next lexeme
     # returns nil if there is no lexeme left
     def next
+      self.lexemes << next_lexeme if self.lexemes.empty?
+      self.lexemes.shift
+    end
+
+    # Peeks lexeme which is ahead of current by the specified amount 
+    # of positions
+    def peek(positions = 1)
+      while self.lexemes.length < positions
+        self.lexemes << next_lexeme
+      end
+      self.lexemes[positions - 1]
+    end
+
+    def next_lexeme
+      return nil if @last_lexeme.nil?
       while true
         @line = next_line if @line_no.zero? or @pos > @line.length - 1
         return nil if @line.nil?
@@ -117,6 +140,7 @@ module Layo
     # character to \n
     # returns nil upon reaching EOF
     def next_line
+      return nil if @input.eof?
       line, ch, @pos, @line_no = '', '', 0, @line_no + 1
       until ch == "\r" or ch == "\n" or ch.nil?
         ch = @input.getc
@@ -126,7 +150,6 @@ module Layo
         ch = @input.getc
         @input.ungetc(ch) unless ch == "\n" or ch.nil?
       end
-      return nil if line.empty?
       line.chomp << "\n"
     end
   end
