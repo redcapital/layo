@@ -21,7 +21,7 @@ module Layo
 
     # Resets this lexer instance
     def reset
-      @line_no, @last_lexeme, self.lexemes = 0, "\n", []
+      @line_no, @last_lexeme, self.lexemes = 0, ["\n"], []
     end
 
     def space?(char)
@@ -35,8 +35,7 @@ module Layo
       @line[pos] == '…' or @line[pos, 3] == '...'
     end
 
-    # Reads and returns next lexeme
-    # returns nil if there is no lexeme left
+    # Returns next lexeme in lexeme list
     def next
       self.lexemes << next_lexeme if self.lexemes.empty?
       self.lexemes.shift
@@ -51,11 +50,15 @@ module Layo
       self.lexemes[positions - 1]
     end
 
+    # Reads and returns next lexeme
     def next_lexeme
-      return nil if @last_lexeme.nil?
+      return @last_lexeme if @last_lexeme[0].nil?
       while true
         @line = next_line if @line_no.zero? or @pos > @line.length - 1
-        return nil if @line.nil?
+        if @line.nil?
+          lexeme = [nil, @line_no, 1]
+          break
+        end
 
         # Skip whitespaces
         while space?(@line[@pos])
@@ -78,7 +81,7 @@ module Layo
           next
         end
         # and multiline ones
-        if @last_lexeme == "\n" && @line[@pos, 4] == 'OBTW'
+        if @last_lexeme[0] == "\n" && @line[@pos, 4] == 'OBTW'
           tldr_found, line_no, pos = false, @line_no, @pos
           while true
             @line = next_line
@@ -132,8 +135,7 @@ module Layo
 
         break
       end
-      @last_lexeme = lexeme[0]
-      lexeme
+      @last_lexeme = lexeme
     end
 
     # Reads and returns next line from input stream. Converts newline

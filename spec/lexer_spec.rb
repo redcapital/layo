@@ -70,7 +70,7 @@ describe Lexer do
     it 'should treat everything till the end of line as a comment' do
       @lexer.input = StringIO.new("abc BTW it's comment")
       @lexer.next.must_equal ['abc', 1, 1]
-      @lexer.next.must_be_nil
+      @lexer.next[0].must_be_nil
     end
   end
 
