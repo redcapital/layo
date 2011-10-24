@@ -7,7 +7,7 @@ module Layo
     attr_accessor :tokens
 
     def initialize(lexer)
-      @lexer = lexer
+      @lexer, self.tokens = lexer, []
       init_token_table
     end
 
@@ -68,6 +68,20 @@ module Layo
     end
 
     def next
+      self.tokens << next_token if self.tokens.empty?
+      self.tokens.shift
+    end
+
+    # Peeks token which is ahead of current by the specified amount 
+    # of positions
+    def peek(positions = 1)
+      while self.tokens.length < positions do
+        self.tokens << next_token
+      end
+      self.tokens[positions - 1]
+    end
+
+    def next_token
       lexeme, token = @lexer.next, nil
       if lexeme[0].nil?
         token = {:type => :eof}
