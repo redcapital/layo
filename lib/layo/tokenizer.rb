@@ -1,14 +1,13 @@
 module Layo
   class Tokenizer
+    include Peekable
     # Instance of Layo::Lexer
     attr_accessor :lexer
 
-    # List of already parsed tokens
-    attr_accessor :tokens
-
     def initialize(lexer)
-      @lexer, self.tokens = lexer, []
+      @lexer = lexer
       init_token_table
+      reset
     end
 
     def init_token_table
@@ -35,13 +34,13 @@ module Layo
       @token_table[:list]['!'] = {:match => :exclamation}
     end
 
-    def match_longest(lexeme, root, depth = 1)
+    def match_longest(lexeme, root)
       return nil unless root.has_key?(:list) && root[:list].has_key?(lexeme)
       newroot = root[:list][lexeme]
       best_match = newroot.has_key?(:match) ? newroot[:match] : nil
-      next_lexeme = @lexer.peek(depth)
+      next_lexeme = @lexer.peek
       unless next_lexeme.nil?
-        try_match = match_longest(next_lexeme[0], newroot, depth + 1)
+        try_match = match_longest(next_lexeme[0], newroot)
         best_match = try_match unless try_match.nil?
       end
       best_match
@@ -67,21 +66,7 @@ module Layo
       lexeme =~ /^[a-zA-Z]\w*$/
     end
 
-    def next
-      self.tokens << next_token if self.tokens.empty?
-      self.tokens.shift
-    end
-
-    # Peeks token which is ahead of current by the specified amount 
-    # of positions
-    def peek(positions = 1)
-      while self.tokens.length < positions do
-        self.tokens << next_token
-      end
-      self.tokens[positions - 1]
-    end
-
-    def next_token
+    def next_item
       lexeme, token = @lexer.next, nil
       if lexeme[0].nil?
         token = {:type => :eof}

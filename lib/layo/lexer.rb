@@ -1,11 +1,9 @@
 # encoding: UTF-8
-
 module Layo
   class Lexer
+    include Peekable
     # Input stream. Must be an instance of IO class (File, StringIO)
     attr_accessor :input
-    # List of already read lexemes
-    attr_accessor :lexemes
     # Current line number (1-based) and position (0-based) of cursor
     attr_reader :pos, :line_no
 
@@ -21,7 +19,8 @@ module Layo
 
     # Resets this lexer instance
     def reset
-      @line_no, @last_lexeme, self.lexemes = 0, ["\n"], []
+      @line_no, @last_lexeme = 0, ["\n"]
+      super
     end
 
     def space?(char)
@@ -35,23 +34,8 @@ module Layo
       @line[pos] == '…' or @line[pos, 3] == '...'
     end
 
-    # Returns next lexeme in lexeme list
-    def next
-      self.lexemes << next_lexeme if self.lexemes.empty?
-      self.lexemes.shift
-    end
-
-    # Peeks lexeme which is ahead of current by the specified amount 
-    # of positions
-    def peek(positions = 1)
-      while self.lexemes.length < positions
-        self.lexemes << next_lexeme
-      end
-      self.lexemes[positions - 1]
-    end
-
     # Reads and returns next lexeme
-    def next_lexeme
+    def next_item
       return @last_lexeme if @last_lexeme[0].nil?
       while true
         @line = next_line if @line_no.zero? or @pos > @line.length - 1
