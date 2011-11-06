@@ -1,5 +1,5 @@
 module Layo::Ast
-  class DeclarationStmtNode < Node
+  class DeclarationStmt < Node
     attr_reader :identifier, :initialization
 
     def initialize(identifier, initialization)

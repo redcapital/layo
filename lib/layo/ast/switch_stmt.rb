@@ -1,5 +1,5 @@
 module Layo::Ast
-  class SwitchStmtNode < StmtNode
+  class SwitchStmt < Stmt
     attr_reader :case_list, :default_case
 
     def initialize(case_list, default_case)

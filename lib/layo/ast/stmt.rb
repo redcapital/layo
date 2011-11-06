@@ -1,4 +1,4 @@
 module Layo::Ast
-  class StmtNode < Node
+  class Stmt < Node
   end
 end

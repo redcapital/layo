@@ -1,5 +1,5 @@
 module Layo::Ast
-  class InputStmtNode < Node
+  class InputStmt < Node
     attr_reader :identifier
 
     def initialize(identifier)

@@ -1,5 +1,5 @@
 module Layo::Ast
-  class FuncDefStmt < StmtNode
+  class FuncDefStmt < Stmt
     attr_reader :name, :args, :block
 
     def initialize(name, args, block)

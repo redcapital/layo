@@ -1,5 +1,5 @@
 module Layo::Ast
-  class TypeNode < Node
+  class Type < Node
     attr_reader :data
     def initialize(data)
       @data = data

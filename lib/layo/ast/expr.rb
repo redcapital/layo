@@ -1,4 +1,4 @@
 module Layo::Ast
-  class ExprNode < Node
+  class Expr < Node
   end
 end

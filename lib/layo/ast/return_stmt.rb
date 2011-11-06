@@ -1,5 +1,5 @@
 module Layo::Ast
-  class ReturnStmtNode < Node
+  class ReturnStmt < Node
     attr_reader :expr
 
     def initialize(expr)

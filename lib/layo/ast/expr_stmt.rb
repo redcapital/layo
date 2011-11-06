@@ -1,5 +1,5 @@
 module Layo::Ast
-  class ExprStmt < StmtNode
+  class ExprStmt < Stmt
     attr_reader :expr
 
     def initialize(expr)

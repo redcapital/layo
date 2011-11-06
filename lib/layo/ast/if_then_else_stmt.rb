@@ -1,5 +1,5 @@
 module Layo::Ast
-  class IfThenElseStmtNode < StmtNode
+  class IfThenElseStmt < Stmt
     attr_reader :block, :elseif_list, :else_block
 
     def initialize(block, elseif_list, else_block)

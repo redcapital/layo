@@ -1,5 +1,5 @@
 module Layo::Ast
-  class PrintStmtNode < Node
+  class PrintStmt < Node
     attr_reader :expr_list, :suppress
 
     def initialize(expr_list, suppress)

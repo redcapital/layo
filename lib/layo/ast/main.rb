@@ -1,5 +1,5 @@
 module Layo::Ast
-  class MainNode < Node
+  class Main < Node
     attr_accessor :version, :block
     def initialize(version, block)
       @version, @block = version, block
