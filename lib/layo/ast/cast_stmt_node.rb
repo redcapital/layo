@@ -1,5 +1,5 @@
 module Layo::Ast
-  class CastStmtNode < Node
+  class CastStmtNode < StmtNode
     attr_reader :identifier, :type
 
     def initialize(identifier, type)
