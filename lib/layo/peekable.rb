@@ -17,5 +17,9 @@ module Layo
       @items << next_item if @items.empty?
       @items.shift
     end
+
+    def reset_peek
+      @peek_index = -1
+    end
   end
 end

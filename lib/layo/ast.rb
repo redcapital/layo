@@ -1,11 +1,12 @@
+# Main nodes
 require_relative 'ast/node'
 require_relative 'ast/main'
 require_relative 'ast/block'
-require_relative 'ast/stmt'
-require_relative 'ast/constant'
 require_relative 'ast/type'
+
+# Statement nodes
+require_relative 'ast/stmt'
 require_relative 'ast/cast_stmt'
-require_relative 'ast/expr'
 require_relative 'ast/print_stmt'
 require_relative 'ast/input_stmt'
 require_relative 'ast/assignment_stmt'
@@ -22,3 +23,13 @@ require_relative 'ast/loop_guard'
 require_relative 'ast/func_def_stmt'
 require_relative 'ast/func_def_args'
 require_relative 'ast/expr_stmt'
+
+# Expression nodes
+require_relative 'ast/expr'
+require_relative 'ast/cast_expr'
+require_relative 'ast/constant_expr'
+require_relative 'ast/variable_expr'
+require_relative 'ast/func_call_expr'
+require_relative 'ast/unary_op_expr'
+require_relative 'ast/binary_op_expr'
+require_relative 'ast/nary_op_expr'

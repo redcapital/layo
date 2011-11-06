@@ -33,53 +33,25 @@ describe Parser do
     node.stmt_list.must_equal statements
   end
 
-  describe "#parse_constant" do
-    it "should parse boolean values" do
-      @tokenizer.stubs(:next_item).returns(
-        {:type => :boolean, :data => true},
-        {:type => :boolean, :data => false}
-      )
-      node = @parser.parse_constant
-      node.must_be_instance_of Constant
-      node.value.must_equal true
-
-      node = @parser.parse_constant
-      node.must_be_instance_of Constant
-      node.value.must_equal false
-    end
-
-    it "should parse integer values" do
-      @tokenizer.stubs(:next_item).returns(
-        {:type => :integer, :data => 567}
-      )
-      node = @parser.parse_constant
-      node.must_be_instance_of Constant
-      node.value.must_equal 567
-    end
-
-    it "should parse float values" do
-      @tokenizer.stubs(:next_item).returns(
-        {:type => :float, :data => -5.234}
-      )
-      node = @parser.parse_constant
-      node.must_be_instance_of Constant
-      node.value.must_equal -5.234
-    end
-
-    it "should parse string values" do
-      @tokenizer.stubs(:next_item).returns :type => :string, :data => 'some value'
-      node = @parser.parse_constant
-      node.must_be_instance_of Constant
-      node.value.must_equal 'some value'
-    end
-  end
-
   it "should parse type node" do
     [:troof, :yarn, :numbr, :numbar, :noob].each do |value|
       @tokenizer.stubs(:next_item).returns :type => value
       node = @parser.parse_type
       node.must_be_instance_of Type
       node.data.must_equal value
+    end
+  end
+
+  describe "#parse_stmt " do
+    it "should call next? and parse method for each statement type" do
+      ['cast', 'print', 'input', 'assignment', 'declaration', 'if_then_else', 
+        'switch', 'break', 'return', 'loop', 'func_def'].each do |name|
+        @parser.expects("#{name}_stmt_next?".to_sym).returns(false)
+      end
+      @parser.expects('expr_stmt_next?').returns(true)
+      stmt = mock
+      @parser.expects('parse_expr_stmt').returns(stmt)
+      @parser.parse_stmt.must_be_same_as stmt
     end
   end
 
@@ -174,7 +146,7 @@ describe Parser do
     end
   end
 
-  describe "#parse_if_then_else" do
+  describe "#parse_if_then_else_stmt" do
     before do
       @tokenizer_expectation = @tokenizer.stubs(:next_item).returns(
         {:type => :o_rly?}, {:type => :newline},
@@ -356,5 +328,118 @@ describe Parser do
     node = @parser.parse_expr_stmt
     node.must_be_instance_of ExprStmt
     node.expr.must_be_same_as expr
+  end
+
+  describe "#parse_expr" do
+    it "should call next? and parse method for each expression type" do
+      ['cast', 'constant', 'variable', 'func_call', 'unary_op', 'binary_op'].each do |name|
+        @parser.expects("#{name}_expr_next?".to_sym).returns(false)
+      end
+      @parser.expects('nary_op_expr_next?').returns(true)
+      expr = mock
+      @parser.expects('parse_nary_op_expr').returns(expr)
+      @parser.parse_expr.must_be_same_as expr
+    end
+  end
+
+  it "should parse cast expr" do
+    @tokenizer.stubs(:next_item).returns({:type => :maek}, {:type => :a})
+    expr, type = mock, mock
+    @parser.expects(:parse_expr).returns(expr)
+    @parser.expects(:parse_type).returns(type)
+    node = @parser.parse_cast_expr
+    node.must_be_instance_of CastExpr
+    node.expr.must_be_same_as expr
+    node.type.must_be_same_as type
+  end
+
+  describe "#parse_constant_expr" do
+    it "should parse boolean values" do
+      @tokenizer.stubs(:next_item).returns(
+        {:type => :boolean, :data => true},
+        {:type => :boolean, :data => false}
+      )
+      node = @parser.parse_constant_expr
+      node.must_be_instance_of ConstantExpr
+      node.value.must_equal true
+
+      node = @parser.parse_constant_expr
+      node.must_be_instance_of ConstantExpr
+      node.value.must_equal false
+    end
+
+    it "should parse integer values" do
+      @tokenizer.stubs(:next_item).returns(
+        {:type => :integer, :data => 567}
+      )
+      node = @parser.parse_constant_expr
+      node.must_be_instance_of ConstantExpr
+      node.value.must_equal 567
+    end
+
+    it "should parse float values" do
+      @tokenizer.stubs(:next_item).returns(
+        {:type => :float, :data => -5.234}
+      )
+      node = @parser.parse_constant_expr
+      node.must_be_instance_of ConstantExpr
+      node.value.must_equal -5.234
+    end
+
+    it "should parse string values" do
+      @tokenizer.stubs(:next_item).returns :type => :string, :data => 'some value'
+      node = @parser.parse_constant_expr
+      node.must_be_instance_of ConstantExpr
+      node.value.must_equal 'some value'
+    end
+  end
+
+  it "should parse variable expr" do
+    @tokenizer.stubs(:next_item).returns({:type => :identifier, :data => 'var'})
+    node = @parser.parse_variable_expr
+    node.must_be_instance_of VariableExpr
+    node.name.must_equal 'var'
+  end
+
+  it "should parse func call expr" do
+    @tokenizer.stubs(:next_item).returns({:type => :identifier, :data => 'foo'})
+    exprs = [mock, mock]
+    @parser.stubs(:expr_next?).returns(true, true, false)
+    @parser.stubs(:parse_expr).returns(*exprs)
+    node = @parser.parse_func_call_expr
+    node.must_be_instance_of FuncCallExpr
+    node.name.must_equal 'foo'
+    node.expr_list.must_equal exprs
+  end
+
+  it "should parse unary op expr" do
+    @tokenizer.stubs(:next_item).returns({:type => :not})
+    expr = mock
+    @parser.expects(:parse_expr).returns(expr)
+    node = @parser.parse_unary_op_expr
+    node.must_be_instance_of UnaryOpExpr
+    node.expr.must_be_same_as expr
+  end
+
+  it "should parse binary op expr" do
+    @tokenizer.stubs(:next_item).returns({:type => :both_of})
+    expr1, expr2 = mock, mock
+    @parser.stubs(:parse_expr).returns(expr1, expr2)
+    node = @parser.parse_binary_op_expr
+    node.must_be_instance_of BinaryOpExpr
+    node.type.must_equal :both_of
+    node.expr1.must_be_same_as expr1
+    node.expr2.must_be_same_as expr2
+  end
+
+  it "should parse nary op expr" do
+    @tokenizer.stubs(:next_item).returns({:type => :any_of}, {:type => :mkay})
+    expr_list = [mock, mock, mock]
+    @parser.stubs(:parse_expr).returns(*expr_list)
+    @parser.stubs(:expr_next?).returns(true, false)
+    node = @parser.parse_nary_op_expr
+    node.must_be_instance_of NaryOpExpr
+    node.type.must_equal :any_of
+    node.expr_list.must_equal expr_list
   end
 end

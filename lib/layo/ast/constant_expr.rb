@@ -1,5 +1,5 @@
 module Layo::Ast
-  class Constant < Node
+  class ConstantExpr < Expr
     attr_reader :type, :value
 
     def initialize(type, value = nil)
