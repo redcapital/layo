@@ -11,14 +11,29 @@ describe Parser do
     @parser = Parser.new(@tokenizer)
   end
 
+  it "should restore peek index after statement lookaheads" do
+    @tokenizer.stubs(:next_item).returns(
+      {:type => :identifier, :data => 'abc'},
+      {:type => :is_now_a}, {:type => :newline}
+    )
+    @parser.stmt_next?.must_equal true
+    @tokenizer.peek.must_equal :type => :identifier, :data => 'abc'
+  end
+
+  it "should restore peek index after expression lookaheads" do
+    @tokenizer.stubs(:next_item).returns({:type => :string, :data => 'abc'})
+    @parser.expr_next?.must_equal true
+    @tokenizer.peek.must_equal :type => :string, :data => 'abc'
+  end
+
   it 'should parse main node' do
     @tokenizer.stubs(:next_item).returns(
       {:type => :hai}, {:type => :float, :data => 1.2},
-      {:type => :newline}, {:type => :eof}
+      {:type => :newline}, {:type => :kthxbye}, {:type => :eof}
     )
     block = mock
     @parser.expects(:parse_block).returns(block)
-    node = @parser.parse
+    node = @parser.parse_main
     node.must_be_instance_of Main
     node.version.must_equal 1.2
     node.block.must_be_same_as block
@@ -44,7 +59,7 @@ describe Parser do
 
   describe "#parse_stmt " do
     it "should call next? and parse method for each statement type" do
-      ['cast', 'print', 'input', 'assignment', 'declaration', 'if_then_else', 
+      ['cast', 'print', 'input', 'assignment', 'declaration', 'if_then_else',
         'switch', 'break', 'return', 'loop', 'func_def'].each do |name|
         @parser.expects("#{name}_stmt_next?".to_sym).returns(false)
       end
@@ -201,7 +216,7 @@ describe Parser do
 
   it "should parse switch stmt" do
     @tokenizer.stubs(:next_item).returns(
-      {:type => :wtf?}, {:type => :newline}, {:type => :omgwtf}, 
+      {:type => :wtf?}, {:type => :newline}, {:type => :omgwtf},
       {:type => :newline}, {:type => :oic}, {:type => :newline}
     )
     cases = [mock, mock]
@@ -244,28 +259,30 @@ describe Parser do
   describe "#parse_loop_stmt" do
     it "should parse loop stmt" do
       @tokenizer.stubs(:next_item).returns(
-        {:type => :im_in_yr, :line => 1, :pos => 1}, 
+        {:type => :im_in_yr, :line => 1, :pos => 1},
         {:type => :identifier, :data => 'abc'},
-        {:type => :newline}, {:type => :im_outta_yr}, 
+        {:type => :newline}, {:type => :im_outta_yr},
         {:type => :identifier, :data => 'abc'}, {:type => :newline}
       )
-      loop_update, loop_guard = mock, mock
+      loop_update, loop_guard, block = mock, mock, mock
       @parser.expects(:loop_update_next?).returns(true)
       @parser.expects(:loop_guard_next?).returns(true)
       @parser.expects(:parse_loop_update).returns(loop_update)
       @parser.expects(:parse_loop_guard).returns(loop_guard)
+      @parser.expects(:parse_block).returns(block)
       node = @parser.parse_loop_stmt
       node.must_be_instance_of LoopStmt
       node.label.must_equal 'abc'
       node.loop_update.must_be_same_as loop_update
       node.loop_guard.must_be_same_as loop_guard
+      node.block.must_be_same_as block
     end
 
     it "should raise exception if label's are not equal" do
       @tokenizer.stubs(:next_item).returns(
-        {:type => :im_in_yr, :line => 1, :pos => 1}, 
+        {:type => :im_in_yr, :line => 1, :pos => 1},
         {:type => :identifier, :data => 'foo'},
-        {:type => :newline}, {:type => :im_outta_yr}, 
+        {:type => :newline}, {:type => :im_outta_yr},
         {:type => :identifier, :data => 'bar'}, {:type => :newline}
       )
       @parser.expects(:loop_update_next?).returns(false)
@@ -306,7 +323,7 @@ describe Parser do
     node = @parser.parse_func_def_stmt
     node.must_be_instance_of FuncDefStmt
     node.name.must_equal 'hello'
-    node.args.must_be_same_as func_def_args
+    node.args_def.must_be_same_as func_def_args
     node.block.must_be_same_as block
   end
 
