@@ -1,5 +1,5 @@
 module Layo::Ast
-  class AssignmentStmt < Node
+  class AssignmentStmt < Stmt
     attr_reader :identifier, :expr
 
     def initialize(identifier, expr)
