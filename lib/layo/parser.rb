@@ -11,12 +11,14 @@ module Layo
     end
 
     def parse_main
-      while expect_token(:newline, :hai)[:type] == :newline; end
+      skip_newlines
+      expect_token(:hai)
       version = expect_token(:float)
       expect_token(:newline)
       block = parse_block
       expect_token(:kthxbye)
-      while expect_token(:newline, :eof)[:type] == :newline; end
+      skip_newlines
+      expect_token(:eof)
       Ast::Main.new(version[:data], block)
     end
 
@@ -28,88 +30,78 @@ module Layo
       token
     end
 
+    def skip_newlines
+      while @tokenizer.peek[:type] == :newline
+        @tokenizer.next
+      end
+      @tokenizer.unpeek
+    end
+
     # Block ::= Stmt *
     def parse_block
       stmts = []
-      while stmt_next?
-        stmts << parse_stmt
-      end
+      begin
+        skip_newlines
+        unless (name = next_stmt_name).nil?
+          stmts << send("parse_#{name}_stmt".to_sym)
+        end
+      end until name.nil?
       Ast::Block.new(stmts)
     end
 
-    # StmtNode ::= CastStmtNode | PrintStmtNode | InputStmtNode | AssignmentStmtNode | DeclarationStmtNode | IfThenElseStmtNode | SwitchStmtNode | BreakStmt | ReturnStmtNode | LoopStmtNode | FuncDefStmtNode | ExprStmt
-    def parse_stmt
+    def next_stmt_name
       STATEMENTS.each do |name|
-        ok = send("#{name}_stmt_next?".to_sym)
-        @tokenizer.reset_peek
-        return send("parse_#{name}_stmt".to_sym) if ok
+        return name if send("#{name}_stmt_next?".to_sym)
       end
-      raise ParserError, 'Expected statement to parse but not found'
-    end
-
-    def stmt_next?
-      STATEMENTS.each do |name|
-        @tokenizer.save_peek
-        ok = send("#{name}_stmt_next?".to_sym)
-        @tokenizer.restore_peek
-        return true if ok
-      end
-      return false
+      nil
     end
 
     def cast_stmt_next?
-      @tokenizer.peek[:type] == :identifier && @tokenizer.peek[:type] == :is_now_a
+      @tokenizer.try(:identifier, :is_now_a)
     end
 
     def print_stmt_next?
-      @tokenizer.peek[:type] == :visible
+      @tokenizer.try(:visible)
     end
 
     def input_stmt_next?
-      @tokenizer.peek[:type] == :gimmeh
+      @tokenizer.try(:gimmeh)
     end
 
     def assignment_stmt_next?
-      @tokenizer.peek[:type] == :identifier && @tokenizer.peek[:type] == :r
+      @tokenizer.try(:identifier, :r)
     end
 
     def declaration_stmt_next?
-      @tokenizer.peek[:type] == :identifier && @tokenizer.peek[:type] == :i_has_a
+      @tokenizer.try(:i_has_a)
     end
 
     def if_then_else_stmt_next?
-      @tokenizer.peek[:type] == :o_rly?
+      @tokenizer.try(:o_rly?)
     end
 
     def switch_stmt_next?
-      @tokenizer.peek[:type] == :wtf?
+      @tokenizer.try(:wtf?)
     end
 
     def break_stmt_next?
-      @tokenizer.peek[:type] == :gtfo
+      @tokenizer.try(:gtfo)
     end
 
     def return_stmt_next?
-      @tokenizer.peek[:type] == :found_yr
+      @tokenizer.try(:found_yr)
     end
 
     def loop_stmt_next?
-      @tokenizer.peek[:type] == :im_in_yr
+      @tokenizer.try(:im_in_yr)
     end
 
     def func_def_stmt_next?
-      @tokenizer.peek[:type] == :how_duz_i
+      @tokenizer.try(:how_duz_i)
     end
 
     def expr_stmt_next?
-      EXPRESSIONS.each do |name|
-        @tokenizer.save_peek
-        ok = send("#{name}_expr_next?".to_sym)
-        result = @tokenizer.peek[:type] == :newline if ok
-        @tokenizer.restore_peek
-        return result if ok
-      end
-      return false
+      !next_expr_name.nil?
     end
 
     # Type ::= TT_NOOB | TT_TROOF | TT_NUMBR | TT_NUMBAR | TT_YARN
@@ -131,8 +123,8 @@ module Layo
     def parse_print_stmt
       expect_token(:visible)
       expr_list = [parse_expr]
-      while expr_next?
-        expr_list << parse_expr
+      until (name = next_expr_name).nil?
+        expr_list << parse_expr(name)
       end
       token = expect_token(:exclamation, :newline)
       suppress = false
@@ -168,6 +160,7 @@ module Layo
         @tokenizer.next
         initialization = parse_expr
       end
+      @tokenizer.unpeek
       expect_token(:newline)
       Ast::DeclarationStmt.new(identifier, initialization)
     end
@@ -189,13 +182,16 @@ module Layo
         expect_token(:newline)
         else_block = parse_block
       end
+      @tokenizer.unpeek
       expect_token(:oic)
       expect_token(:newline)
       Ast::IfThenElseStmt.new(block, elseif_list, else_block)
     end
 
     def elseif_next?
-      @tokenizer.peek[:type] == :mebbe
+      result = @tokenizer.peek[:type] == :mebbe
+      @tokenizer.unpeek
+      result
     end
 
     # ElseIf ::= TT_MEBBE ExprNode TT_NEWLINE BlockNode
@@ -221,13 +217,16 @@ module Layo
         expect_token(:newline)
         default_case = parse_block
       end
+      @tokenizer.unpeek
       expect_token(:oic)
       expect_token(:newline)
       Ast::SwitchStmt.new(case_list, default_case)
     end
 
     def case_next?
-      @tokenizer.peek[:type] == :omg
+      result = @tokenizer.peek[:type] == :omg
+      @tokenizer.unpeek
+      result
     end
 
     # Case ::= TT_OMG ExprNode TT_NEWLINE BlockNode
@@ -261,7 +260,6 @@ module Layo
       loop_update = loop_update_next? ? parse_loop_update : nil
       loop_guard = loop_guard_next? ? parse_loop_guard : nil
       block = parse_block
-      expect_token(:newline)
       expect_token(:im_outta_yr)
       label_end = expect_token(:identifier)[:data]
       expect_token(:newline)
@@ -275,8 +273,13 @@ module Layo
     end
 
     def loop_update_next?
-      [:uppin, :nerfin, :identifier].include?(@tokenizer.peek[:type]) &&
-        @tokenizer.peek[:type] == :yr
+      result = false
+      if [:uppin, :nerfin, :identifier].include?(@tokenizer.peek[:type])
+        result = @tokenizer.peek[:type] == :yr
+        @tokenizer.unpeek
+      end
+      @tokenizer.unpeek
+      result
     end
 
     # LoopUpdate ::= [:uppin | :nerfin | :identifier] TT_YR IdentifierNode
@@ -287,7 +290,9 @@ module Layo
     end
 
     def loop_guard_next?
-      [:til, :wile].include?(@tokenizer.peek[:type])
+      result = [:til, :wile].include?(@tokenizer.peek[:type])
+      @tokenizer.unpeek
+      result
     end
 
     def parse_loop_guard
@@ -308,7 +313,9 @@ module Layo
     end
 
     def func_def_args_next?
-      @tokenizer.peek[:type] == :yr
+      result = @tokenizer.peek[:type] == :yr
+      @tokenizer.unpeek
+      result
     end
 
     # FuncDefArgs ::= TT_YR IdentifierNode [:an_yr :identifier]*
@@ -319,7 +326,7 @@ module Layo
         @tokenizer.next
         args << expect_token(:identifier)[:data]
       end
-      @tokenizer.reset_peek
+      @tokenizer.unpeek
       Ast::FuncDefArgs.new(args)
     end
 
@@ -331,13 +338,10 @@ module Layo
     end
 
     # Expr ::= CastExpr | ConstantExpr | VariableExpr | FuncCallExpr | UnaryOpExpr | BinaryOpExpr | NaryOpExpr
-    def parse_expr
-      EXPRESSIONS.each do |name|
-        ok = send("#{name}_expr_next?".to_sym)
-        @tokenizer.reset_peek
-        return send("parse_#{name}_expr".to_sym) if ok
-      end
-      raise ParserError, 'Expected expression to parse but not found'
+    def parse_expr(name = nil)
+      name = next_expr_name if name.nil?
+      raise ParserError, 'Expected expression to parse but not found' if name.nil?
+      return send("parse_#{name}_expr".to_sym)
     end
 
     def parse_cast_expr
@@ -347,43 +351,48 @@ module Layo
       Ast::CastExpr.new(expr, parse_type)
     end
 
-    def expr_next?
+    def next_expr_name(restore_peek = true)
       EXPRESSIONS.each do |name|
-        @tokenizer.save_peek
-        ok = send("#{name}_expr_next?".to_sym)
-        @tokenizer.restore_peek
-        return true if ok
+        return name if send("#{name}_expr_next?".to_sym)
       end
-      return false
+      nil
     end
 
     def cast_expr_next?
-      @tokenizer.peek[:type] == :maek
+      @tokenizer.try(:maek)
     end
 
     def constant_expr_next?
-      [:boolean, :integer, :float, :string].include?(@tokenizer.peek[:type])
+      result = [:boolean, :integer, :float, :string].include?(@tokenizer.peek[:type])
+      @tokenizer.unpeek
+      result
     end
 
     def variable_expr_next?
-      @tokenizer.peek[:type] == :identifier
+      @tokenizer.try(:identifier)
     end
 
     def func_call_expr_next?
-      @tokenizer.peek[:type] == :identifier && expr_next?
+      result = @tokenizer.peek[:type] == :identifier && !next_expr_name.nil?
+      @tokenizer.unpeek
+      result
     end
 
     def unary_op_expr_next?
-      @tokenizer.peek[:type] == :not
+      @tokenizer.try(:not)
     end
 
     def binary_op_expr_next?
-      [:sum_of, :diff_of, :produkt_of, :quoshunt_of, :mod_of, :biggr_of,
-        :smallr_of, :both_of, :either_of, :won_of].include?(@tokenizer.peek[:type])
+      result = [:sum_of, :diff_of, :produkt_of, :quoshunt_of, :mod_of, :biggr_of,
+        :smallr_of, :both_of, :either_of, :won_of, :both_saem].include?(@tokenizer.peek[:type])
+      @tokenizer.unpeek
+      result
     end
 
     def nary_op_expr_next?
-      [:all_of, :any_of, :smoosh].include?(@tokenizer.peek[:type])
+      result = [:all_of, :any_of, :smoosh].include?(@tokenizer.peek[:type])
+      @tokenizer.unpeek
+      result
     end
 
     # ConstantExpr ::= Boolean | Integer | Float | String
@@ -400,12 +409,12 @@ module Layo
 
     # FuncCallExpr ::= :identifier ExprNode *
     def parse_func_call_expr
-      name = expect_token(:identifier)[:data]
+      function_name = expect_token(:identifier)[:data]
       expr_list = []
-      while expr_next?
-        expr_list << parse_expr
+      until (name = next_expr_name).nil?
+        expr_list << parse_expr(name)
       end
-      Ast::FuncCallExpr.new(name, expr_list)
+      Ast::FuncCallExpr.new(function_name, expr_list)
     end
 
     # UnaryOpExpr ::= :not Expr
@@ -418,26 +427,26 @@ module Layo
     def parse_binary_op_expr
       type = expect_token(
         :sum_of, :diff_of, :produkt_of, :quoshunt_of, :mod_of,
-        :biggr_of, :smallr_of, :both_of, :either_of, :won_of
+        :biggr_of, :smallr_of, :both_of, :either_of, :won_of, :both_saem
       )[:type]
       expr1 = parse_expr
       token = @tokenizer.peek
       @tokenizer.next if token[:type] == :an
-      @tokenizer.reset_peek
+      @tokenizer.unpeek
       Ast::BinaryOpExpr.new(type, expr1, parse_expr)
     end
 
     # NaryOpExpr ::= :all_of | :any_of | :smoosh Expr Expr + :mkay | :newline
     def parse_nary_op_expr
       type = expect_token(:all_of, :any_of, :smoosh)[:type]
-      expr_list = [parse_expr]
-      begin
-        expr_list << parse_expr
-      end while expr_next?
+      expr_list = [parse_expr, parse_expr]
+      until (name = next_expr_name).nil?
+        expr_list << parse_expr(name)
+      end
       token = @tokenizer.peek
       # Do not consume newline token
       @tokenizer.next if token[:type] == :mkay
-      @tokenizer.reset_peek
+      @tokenizer.unpeek
       Ast::NaryOpExpr.new(type, expr_list)
     end
   end

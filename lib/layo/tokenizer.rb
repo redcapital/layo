@@ -10,9 +10,22 @@ module Layo
       reset
     end
 
+    def try(*types)
+      index = @peek_index
+      result = true
+      types.each do |type|
+        unless peek[:type] == type
+          result = false
+          break
+        end
+      end
+      @peek_index = index
+      result
+    end
+
     def init_token_table
       @token_table = {:list => {}}
-      ['HAI', 'KTHXBYE', 'NOOB', 'TROOF', 'NUMBR', 'NUMBAR', 
+      ['HAI', 'KTHXBYE', 'NOOB', 'TROOF', 'NUMBR', 'NUMBAR',
         'YARN', 'I HAS A', 'ITZ', 'R', 'SUM OF', 'DIFF OF', 'PRODUKT OF',
         'QUOSHUNT OF', 'MOD OF', 'BIGGR OF', 'SMALLR OF', 'BOTH OF', 'EITHER OF',
         'WON OF', 'NOT', 'ALL OF', 'ANY OF', 'BOTH SAEM', 'DIFFRINT',

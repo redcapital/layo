@@ -1,7 +1,9 @@
 module Layo
   module Peekable
+    attr_accessor :peek_index
+
     def reset
-      @peek_index, @items, @save_stack = -1, [], []
+      @peek_index, @items = -1, []
     end
 
     def peek
@@ -12,6 +14,10 @@ module Layo
       @items[@peek_index]
     end
 
+    def unpeek
+      @peek_index -= 1 if @peek_index > -1
+    end
+
     def next
       @peek_index = -1
       @items << next_item if @items.empty?
@@ -20,14 +26,6 @@ module Layo
 
     def reset_peek
       @peek_index = -1
-    end
-
-    def save_peek
-      @save_stack << @peek_index
-    end
-
-    def restore_peek
-      @peek_index = @save_stack.empty? ? -1 : @save_stack.shift
     end
   end
 end
