@@ -2,12 +2,56 @@ module Layo
   class Parser
     STATEMENTS = ['cast', 'print', 'input', 'assignment', 'declaration',
       'if_then_else', 'switch', 'break', 'return', 'loop', 'func_def', 'expr']
-    EXPRESSIONS = ['cast', 'constant', 'func_call', 'variable', 'unary_op',
+    EXPRESSIONS = ['cast', 'constant', 'identifier', 'unary_op',
         'binary_op', 'nary_op']
     attr_accessor :tokenizer
+    attr_reader :functions
 
     def initialize(tokenizer)
       @tokenizer = tokenizer
+      @functions = {}
+    end
+
+    def reset
+      @functions = {}
+      @tokenizer.reset
+    end
+
+    # Function declarations should be parsed first in order to properly
+    # parse argument list and allow calling functions before their definition.
+    # So this method should be called as the first pass before parsing begins
+    def parse_function_declarations(tokens)
+      @tokenizer.reset_peek
+      until (token = @tokenizer.peek)[:type] == :eof
+        if token[:type] == :how_duz_i
+          # Function name must follow
+          token = @tokenizer.peek
+          unless token[:type] == :identifier
+            raise UnexpectedTokenError, token
+          end
+          name = token[:data]
+          args = []
+          token = @tokenizer.peek
+          if token[:type] == :yr
+            # Function arguments must follow
+            begin
+              token = @tokenizer.peek
+              unless token[:type] == :identifier
+                raise UnexpectedTokenError, token
+              end
+              args << token[:data]
+            end while @tokenizer.peek[:type] == :an_yr
+          end
+          @tokenizer.unpeek
+          @functions[name] = args
+          # Newline must follow
+          token = @tokenizer.peek
+          unless token[:type] == :newline
+            raise UnexpectedTokenError, token
+          end
+        end
+      end
+      @tokenizer.reset_peek
     end
 
     def parse_main
@@ -300,34 +344,31 @@ module Layo
       Ast::LoopGuard.new(token[:type], parse_expr)
     end
 
-    # FuncDefStmt ::= TT_HOWDUZ IdentifierNode [ FunctionDefArgs ] TT_NEWLINE BlockNode TT_IFUSAYSO TT_NEWLINE
+    # FuncDefStmt ::= TT_HOWDUZ IdentifierNode [ TT_YR IdentifierNode [AN_YR IdentifierNode] * ] TT_NEWLINE BlockNode TT_IFUSAYSO TT_NEWLINE
     def parse_func_def_stmt
       expect_token(:how_duz_i)
       name = expect_token(:identifier)[:data]
-      args = func_def_args_next? ? parse_func_def_args : nil
-      expect_token(:newline)
+      if @functions.has_key?(name)
+        # Function definition was parsed in the first pass
+        until @tokenizer.next[:type] == :newline; end
+        args = @functions[name]
+      else
+        # Parse argument list as usual
+        args = []
+        if @tokenizer.peek[:type] == :yr
+          begin
+            @tokenizer.next
+            args << expect_token(:identifier)[:data]
+          end while @tokenizer.peek[:type] == :an_yr
+        end
+        @tokenizer.unpeek
+        expect_token(:newline)
+        @functions[name] = args
+      end
       block = parse_block
       expect_token(:if_u_say_so)
       expect_token(:newline)
       Ast::FuncDefStmt.new(name, args, block)
-    end
-
-    def func_def_args_next?
-      result = @tokenizer.peek[:type] == :yr
-      @tokenizer.unpeek
-      result
-    end
-
-    # FuncDefArgs ::= TT_YR IdentifierNode [:an_yr :identifier]*
-    def parse_func_def_args
-      expect_token(:yr)
-      args = [expect_token(:identifier)[:data]]
-      while @tokenizer.peek[:type] == :an_yr
-        @tokenizer.next
-        args << expect_token(:identifier)[:data]
-      end
-      @tokenizer.unpeek
-      Ast::FuncDefArgs.new(args)
     end
 
     # ExprStmt ::= ExprNode TT_NEWLINE
@@ -337,7 +378,7 @@ module Layo
       Ast::ExprStmt.new(expr)
     end
 
-    # Expr ::= CastExpr | ConstantExpr | VariableExpr | FuncCallExpr | UnaryOpExpr | BinaryOpExpr | NaryOpExpr
+    # Expr ::= CastExpr | ConstantExpr | IdentifierExpr | UnaryOpExpr | BinaryOpExpr | NaryOpExpr
     def parse_expr(name = nil)
       name = next_expr_name if name.nil?
       raise ParserError, 'Expected expression to parse but not found' if name.nil?
@@ -368,14 +409,8 @@ module Layo
       result
     end
 
-    def variable_expr_next?
+    def identifier_expr_next?
       @tokenizer.try(:identifier)
-    end
-
-    def func_call_expr_next?
-      result = @tokenizer.peek[:type] == :identifier && !next_expr_name.nil?
-      @tokenizer.unpeek
-      result
     end
 
     def unary_op_expr_next?
@@ -401,20 +436,26 @@ module Layo
       Ast::ConstantExpr.new(token[:type], token[:data])
     end
 
-    # VariableExpr ::= :identifier
-    def parse_variable_expr
+    # IdentifierExpr ::= :identifier
+    def parse_identifier_expr
       name = expect_token(:identifier)[:data]
-      Ast::VariableExpr.new(name)
-    end
-
-    # FuncCallExpr ::= :identifier ExprNode *
-    def parse_func_call_expr
-      function_name = expect_token(:identifier)[:data]
-      expr_list = []
-      until (name = next_expr_name).nil?
-        expr_list << parse_expr(name)
+      begin
+        function = self.functions.fetch(name)
+        # Function call
+        expr_list = []
+        function.size.times do |c|
+          expr_name = next_expr_name
+          if expr_name.nil?
+            msg = 'Function %s expects %d arguments, %d passed' % name, function.size, c
+            raise ParserError, msg
+          end
+          expr_list << parse_expr(expr_name)
+        end
+        return Ast::FuncCallExpr.new(name, expr_list)
+      rescue KeyError
+        # Variable name
+        return Ast::VariableExpr.new(name)
       end
-      Ast::FuncCallExpr.new(function_name, expr_list)
     end
 
     # UnaryOpExpr ::= :not Expr

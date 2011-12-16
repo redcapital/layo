@@ -304,26 +304,13 @@ describe Parser do
       {:type => :how_duz_i}, {:type => :identifier, :data => 'hello'},
       {:type => :newline}, {:type => :if_u_say_so}, {:type => :newline}
     )
-    func_def_args, block = mock, mock, mock
-    @parser.expects(:func_def_args_next?).returns(true)
-    @parser.expects(:parse_func_def_args).returns(func_def_args)
+    block = mock
     @parser.expects(:parse_block).returns(block)
     node = @parser.parse_func_def_stmt
     node.must_be_instance_of FuncDefStmt
     node.name.must_equal 'hello'
-    node.args_def.must_be_same_as func_def_args
     node.block.must_be_same_as block
-  end
-
-  it "should parse func def args" do
-    @tokenizer.stubs(:next_item).returns(
-      {:type => :yr}, {:type => :identifier, :data => 'arg1'},
-      {:type => :an_yr}, {:type => :identifier, :data => 'arg2'},
-      {:type => :newline}
-    )
-    node = @parser.parse_func_def_args
-    node.must_be_instance_of FuncDefArgs
-    node.args.must_equal ['arg1', 'arg2']
+    node.args.must_equal []
   end
 
   it "should parse expr stmt" do
@@ -387,22 +374,25 @@ describe Parser do
     end
   end
 
-  it "should parse variable expr" do
-    @tokenizer.stubs(:next_item).returns({:type => :identifier, :data => 'var'})
-    node = @parser.parse_variable_expr
-    node.must_be_instance_of VariableExpr
-    node.name.must_equal 'var'
-  end
+  describe '#parse_identifier_expr' do
+    it "should parse variable expr" do
+      @tokenizer.stubs(:next_item).returns({:type => :identifier, :data => 'var'})
+      node = @parser.parse_identifier_expr
+      node.must_be_instance_of VariableExpr
+      node.name.must_equal 'var'
+    end
 
-  it "should parse func call expr" do
-    @tokenizer.stubs(:next_item).returns({:type => :identifier, :data => 'foo'})
-    exprs = [mock, mock]
-    @parser.stubs(:next_expr_name).returns('cast', 'constant', nil)
-    @parser.stubs(:parse_expr).returns(*exprs)
-    node = @parser.parse_func_call_expr
-    node.must_be_instance_of FuncCallExpr
-    node.name.must_equal 'foo'
-    node.expr_list.must_equal exprs
+    it "should parse func call expr" do
+      @tokenizer.stubs(:next_item).returns({:type => :identifier, :data => 'foo'})
+      exprs = [mock, mock]
+      @parser.stubs(:functions).returns({'foo' => ['arg1', 'arg2']})
+      @parser.stubs(:next_expr_name).returns('cast', 'constant')
+      @parser.stubs(:parse_expr).returns(*exprs)
+      node = @parser.parse_identifier_expr
+      node.must_be_instance_of FuncCallExpr
+      node.name.must_equal 'foo'
+      node.expr_list.must_equal exprs
+    end
   end
 
   it "should parse unary op expr" do

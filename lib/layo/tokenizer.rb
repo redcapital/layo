@@ -10,6 +10,11 @@ module Layo
       reset
     end
 
+    def reset
+      @lexer.reset
+      super
+    end
+
     def try(*types)
       index = @peek_index
       result = true

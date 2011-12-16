@@ -21,7 +21,6 @@ require_relative 'ast/loop_stmt'
 require_relative 'ast/loop_update'
 require_relative 'ast/loop_guard'
 require_relative 'ast/func_def_stmt'
-require_relative 'ast/func_def_args'
 require_relative 'ast/expr_stmt'
 
 # Expression nodes
