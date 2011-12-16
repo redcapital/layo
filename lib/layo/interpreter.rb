@@ -147,9 +147,7 @@ module Layo
         if case_found
           breaked = true
           catch :break do
-            kase.block.stmt_list.each do |block_stmt|
-              eval_stmt(block_stmt)
-            end
+            eval_block(kase.block)
             breaked = false
           end
           break if breaked
@@ -157,9 +155,7 @@ module Layo
       end
       unless case_found or stmt.default_case.nil?
         catch :break do
-          stmt.default_case.stmt_list.each do |block_stmt|
-            eval_stmt(block_stmt)
-          end
+          eval_block(stmt.default_case)
         end
       end
     end
