@@ -61,8 +61,7 @@ module Layo
 
         # Skip one line comments
         if @line[@pos, 3] == 'BTW'
-          @pos = @line.length + 1
-          next
+          @pos = @line.length - 1
         end
         # and multiline ones
         if @last_lexeme[0] == "\n" && @line[@pos, 4] == 'OBTW'
