@@ -20,7 +20,7 @@ module Layo
     # Function declarations should be parsed first in order to properly
     # parse argument list and allow calling functions before their definition.
     # So this method should be called as the first pass before parsing begins
-    def parse_function_declarations(tokens)
+    def parse_function_declarations
       @tokenizer.reset_peek
       until (token = @tokenizer.peek)[:type] == :eof
         if token[:type] == :how_duz_i

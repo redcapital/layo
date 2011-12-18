@@ -7,7 +7,18 @@ module Layo
     end
 
     def interpret
-      eval_main(@parser.parse)
+      @functions = {}
+      @parser.parse_function_declarations
+      main = @parser.parse
+      main.block.each do |statement|
+        if statement.is_a? Layo::Ast::FuncDefStmt
+          @functions[statement.name] = {
+            args: @parser.functions[statement.name],
+            block: statement.block
+          }
+        end
+      end
+      eval_main(main)
     end
 
     def create_variable_table
@@ -94,26 +105,37 @@ module Layo
     def eval_loop_stmt(stmt)
       update, guard = stmt.loop_update, stmt.loop_guard
       unless update.nil?
-        var_backup = @vtable[update.identifier]
-        @vtable[update.identifier] = {:type => :numbr, :value => 0}
+        if @vtable.has_key?(update.identifier[:data])
+          var_backup = @vtable[update.identifier[:data]]
+        end
+        @vtable[update.identifier[:data]] = {:type => :numbr, :value => 0}
+        update_op = if update.update_op[:type] == :uppin
+          lambda { @vtable[update.identifier[:data]][:value] += 1 }
+        elsif update.update_op[:type] == :nerfin
+          lambda { @vtable[update.identifier[:data]][:value] -= 1 }
+        else
+          lambda {
+            @vtable[update.identifier[:data]] = call_func(update.update_op[:data], [@vtable[update.identifier[:data]]])
+          }
+        end
       end
 
       catch :break do
         while true
           unless guard.nil?
-            condition = eval_expr(guard.condition)
-            condition_met = cast(condition, :troof)
-            if (condition.condition_type == :wile && condition_met) or
-               (condition.condition_type == :til && !condition_met)
+            condition_met = cast(eval_expr(guard.condition), :troof)
+            if (guard.condition_type == :wile && !condition_met) or
+               (guard.condition_type == :til && condition_met)
                throw :break
             end
           end
-          stmt.block.stmt_list.each do |block_stmt|
-            eval_stmt(block_stmt)
-          end
+          eval_block(stmt.block)
+          update_op.call if update_op
         end
       end
-      @vtable[update.identifier] = var_backup
+      unless update.nil? || var_backup.nil?
+        @vtable[update.identifier[:data]] = var_backup
+      end
     end
 
     def eval_print_stmt(stmt)
@@ -238,15 +260,23 @@ module Layo
     end
 
     def eval_funccall_expr(expr)
-      function = @parser.functions[expr.name]
+      arguments = []
+      expr.expr_list.each do |arg|
+        arguments << eval_expr(arg)
+      end
+      call_func(expr.name, arguments)
+    end
+
+    def call_func(name, arguments)
+      function = @functions[name]
       old_table = @vtable
       @vtable = create_variable_table
-      function.args.each_index do |index|
-        @vtable[function.args[index]] = eval_expr(expr.expr_list[index])
+      function[:args].each_index do |index|
+        @vtable[function[:args][index]] = arguments[index]
       end
       returned = true
       retval = catch :return do
-        eval_block(function.block)
+        eval_block(function[:block])
         returned = false
       end
       retval = @vtable['IT'] unless returned
@@ -287,12 +317,7 @@ module Layo
     end
 
     def eval_variable_expr(expr)
-      return @vtable[expr.name] if @vtable.has_key?(expr.name)
-      if @function_table.has_key?(expr.name)
-        expr = Ast::FuncCallExpr.new(expr.name, [])
-        eval_funccall_expr(expr)
-      end
-      raise RuntimeError, "Variable or function #{expr.name} is not defined"
+      return @vtable[expr.name]
     end
   end
 end
