@@ -419,7 +419,7 @@ describe Parser do
     @tokenizer.stubs(:next_item).returns({:type => :any_of}, {:type => :mkay})
     expr_list = [mock, mock, mock]
     @parser.stubs(:parse_expr).returns(*expr_list)
-    @parser.stubs(:next_expr_name).returns('constant', nil)
+    @parser.stubs(:next_expr_name).returns('constant', 'constant', nil)
     node = @parser.parse_nary_op_expr
     node.must_be_instance_of NaryOpExpr
     node.type.must_equal :any_of

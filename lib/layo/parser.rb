@@ -418,8 +418,9 @@ module Layo
     end
 
     def binary_op_expr_next?
-      result = [:sum_of, :diff_of, :produkt_of, :quoshunt_of, :mod_of, :biggr_of,
-        :smallr_of, :both_of, :either_of, :won_of, :both_saem].include?(@tokenizer.peek[:type])
+      result = [:sum_of, :diff_of, :produkt_of, :quoshunt_of, :mod_of,
+        :biggr_of, :smallr_of, :both_of, :either_of, :won_of, :both_saem,
+        :diffrint].include?(@tokenizer.peek[:type])
       @tokenizer.unpeek
       result
     end
@@ -467,8 +468,8 @@ module Layo
     # BinaryOpExpr ::= TT_SUMOF | TT_DIFFOF | TT_PRODUKTOF | TT_QUOSHUNTOF | TT_MODOF | BIGGROF | SMALLROF | TT_BOTHOF | TT_EITHEROF | TT_WONOF ExprNode [:an] ExprNode
     def parse_binary_op_expr
       type = expect_token(
-        :sum_of, :diff_of, :produkt_of, :quoshunt_of, :mod_of,
-        :biggr_of, :smallr_of, :both_of, :either_of, :won_of, :both_saem
+        :sum_of, :diff_of, :produkt_of, :quoshunt_of, :mod_of, :biggr_of,
+        :smallr_of, :both_of, :either_of, :won_of, :both_saem, :diffrint
       )[:type]
       expr1 = parse_expr
       token = @tokenizer.peek
@@ -480,14 +481,15 @@ module Layo
     # NaryOpExpr ::= :all_of | :any_of | :smoosh Expr Expr + :mkay | :newline
     def parse_nary_op_expr
       type = expect_token(:all_of, :any_of, :smoosh)[:type]
-      expr_list = [parse_expr, parse_expr]
-      until (name = next_expr_name).nil?
-        expr_list << parse_expr(name)
+      expr_list = [parse_expr]
+      while true
+        @tokenizer.next if @tokenizer.peek[:type] == :an
+        @tokenizer.unpeek
+        name = next_expr_name
+        if name.nil? then break else expr_list << parse_expr(name) end
       end
-      token = @tokenizer.peek
       # Do not consume newline token
-      @tokenizer.next if token[:type] == :mkay
-      @tokenizer.unpeek
+      if @tokenizer.peek[:type] == :mkay then @tokenizer.next else @tokenizer.unpeek end
       Ast::NaryOpExpr.new(type, expr_list)
     end
   end

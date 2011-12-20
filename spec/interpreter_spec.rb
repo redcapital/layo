@@ -39,7 +39,7 @@ describe Interpreter do
 
       # Assertions
       unless output.nil?
-        @output.string.must_equal output, "File: #{source_filename}"
+        assert_equal output, @output.string, "File: #{source_filename}"
       end
 
       # Cleanup

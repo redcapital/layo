@@ -226,7 +226,7 @@ module Layo
       methods = {
         :sum_of => :+, :diff_of => :-, :produkt_of => :*, :quoshunt_of => :/,
         :mod_of => :modulo, :both_of => :&, :either_of => :|, :won_of => :^,
-        :both_saem => :==,
+        :both_saem => :==, :diffrint => :!=
       }
       case expr.type
         when :sum_of, :diff_of, :produkt_of, :quoshunt_of, :mod_of, :biggr_of, :smallr_of
@@ -238,11 +238,21 @@ module Layo
           elsif expr.type == :smallr_of
             value = [l, r].min
           else
-            value = l.send methods[expr.type], r
+            value = l.send(methods[expr.type], r)
           end
+        when :both_saem, :diffrint
+          type = :troof
+          if (l[:type] == :numbr && r[:type] == :numbar) ||
+            (l[:type] == :numbar && r[:type] == :numbr)
+            l, r = cast(l, :numbar), cast(r, :numbar)
+          elsif l[:type] != r[:type]
+            raise RuntimeError, 'Operands must have same type'
+          end
+          value = l.send(methods[expr.type], r)
         else
           type = :troof
-          value = l[:value].send methods[expr.type], r[:value]
+          l, r = cast(l, :troof), cast(r, :troof)
+          value = l.send(methods[expr.type], r)
       end
       return {:type => type, :value => value}
     end
