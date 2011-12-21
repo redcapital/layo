@@ -1,0 +1,36 @@
+# About
+
+Layo is a LOLCODE interpreter written in Ruby. It tries to conform to the
+[LOLCODE 1.2 specification](http://lolcode.com/specs/1.2) and supports 
+everything described there. Note that I purposely did not use any parser 
+generators such as `Racc`.
+
+Current version of Layo is 1.0
+
+# Usage
+
+Dowload sources, unzip somewhere and run from project's root:
+
+`bin/layo program.lol`
+
+Oh, and there are tests too. In order to run them, you have to install `mocha`:
+`gem install mocha`. Then go to project's root and execute `rake test`.
+
+# Requirements
+
+* Ruby >= 1.9.2
+* [Mocha](http://mocha.rubyforge.org/) for development
+
+# Example program
+
+```
+HAI 1.2
+VISIBLE "Hello world!"
+KTHXBYE
+```
+
+# TODO
+
+* Conform to specification, there are some things left
+* Add string interpolation with unicode support
+* Package it as a Ruby gem
