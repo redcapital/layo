@@ -52,7 +52,7 @@ module Layo
     end
 
     def eval_break_stmt(stmt)
-      throw :break
+      throw :break, {:type => :noob, :value => nil}
     end
 
     def eval_cast_stmt(stmt)
@@ -152,7 +152,7 @@ module Layo
     end
 
     def eval_return_stmt(stmt)
-      throw :return, eval_expr(stmt.expr)
+      throw :break, eval_expr(stmt.expr)
     end
 
     def eval_switch_stmt(stmt)
@@ -285,7 +285,7 @@ module Layo
         @vtable[function[:args][index]] = arguments[index]
       end
       returned = true
-      retval = catch :return do
+      retval = catch :break do
         eval_block(function[:block])
         returned = false
       end

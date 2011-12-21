@@ -15,4 +15,10 @@ IF U SAY SO
 
 VISIBLE greeting "Shrek"
 VISIBLE greeting "Princess Fiona"
+
+HOW DUZ I nil_func
+  GTFO
+IF U SAY SO
+
+VISIBLE MAEK nil_func A NUMBR
 KTHXBYE

@@ -447,7 +447,7 @@ module Layo
         function.size.times do |c|
           expr_name = next_expr_name
           if expr_name.nil?
-            msg = 'Function %s expects %d arguments, %d passed' % name, function.size, c
+            msg = "Function '%s' expects %d arguments, %d passed" % [name, function.size, c]
             raise ParserError, msg
           end
           expr_list << parse_expr(expr_name)
