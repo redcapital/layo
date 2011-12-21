@@ -315,7 +315,7 @@ module Layo
         when :smoosh
           type, value = :yarn, ''
           expr.expr_list.each do |operand|
-            value << eval_expr(operand, :yarn)
+            value << cast(eval_expr(operand), :yarn)
           end
       end
       return {:type => type, :value => value}
