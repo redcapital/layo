@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+
+$:.unshift File.join(File.dirname(__FILE__), *%w[.. lib])
+
+require 'layo'
+
+if ARGV.empty?
+  puts 'Usage: layo [filename]'
+  exit
+end
+raise "File #{ARGV[0]} does not exist" unless File.exists?(ARGV[0])
+File.open(ARGV[0]) do |f|
+  lexer = Layo::Lexer.new(f)
+  tokenizer = Layo::Tokenizer.new(lexer)
+  parser = Layo::Parser.new(tokenizer)
+  interpreter = Layo::Interpreter.new(parser)
+  interpreter.interpret
+end
