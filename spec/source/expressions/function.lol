@@ -8,4 +8,11 @@ IF U SAY SO
 
 VISIBLE "1 * 2 + 3 = " x_mul_y_plus_z 1 2 3 " one more arg for VISIBLE"
 
+BTW This function uses implicit variable to return value, just like in Ruby
+HOW DUZ I greeting YR name
+  SMOOSH "Greetings, " AN name
+IF U SAY SO
+
+VISIBLE greeting "Shrek"
+VISIBLE greeting "Princess Fiona"
 KTHXBYE
