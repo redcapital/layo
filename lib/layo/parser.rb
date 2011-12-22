@@ -1,7 +1,5 @@
 module Layo
   class Parser
-    STATEMENTS = ['cast', 'print', 'input', 'assignment', 'declaration',
-      'if_then_else', 'switch', 'break', 'return', 'loop', 'func_def', 'expr']
     EXPRESSIONS = ['cast', 'constant', 'identifier', 'unary_op',
         'binary_op', 'nary_op']
     attr_accessor :tokenizer
@@ -57,13 +55,13 @@ module Layo
     def parse_program
       skip_newlines
       expect_token(:hai)
-      version = expect_token(:float)
+      version = expect_token(:float)[:data]
       expect_token(:newline)
       block = parse_block
       expect_token(:kthxbye)
       skip_newlines
       expect_token(:eof)
-      Ast::Program.new(version[:data], block)
+      Ast::Program.new(version, block)
     end
 
     alias_method :parse, :parse_program
@@ -81,81 +79,39 @@ module Layo
       @tokenizer.unpeek
     end
 
-    # Block ::= Stmt *
     def parse_block
-      stmts = []
+      statements = []
       begin
         skip_newlines
-        unless (name = next_stmt_name).nil?
-          stmts << send("parse_#{name}_stmt".to_sym)
+        unless (name = next_statement).nil?
+          statements << send("parse_#{name}_statement".to_sym)
         end
       end until name.nil?
-      Ast::Block.new(stmts)
+      Ast::Block.new(statements)
     end
 
-    def next_stmt_name
-      STATEMENTS.each do |name|
-        return name if send("#{name}_stmt_next?".to_sym)
-      end
+    def next_statement
+      return 'assignment' if @tokenizer.try(:identifier, :r)
+      return 'break' if @tokenizer.try(:gtfo)
+      return 'cast' if @tokenizer.try(:identifier, :is_now_a)
+      return 'condition' if @tokenizer.try(:o_rly?)
+      return 'declaration' if @tokenizer.try(:i_has_a)
+      return 'function' if @tokenizer.try(:how_duz_i)
+      return 'input' if @tokenizer.try(:gimmeh)
+      return 'loop' if @tokenizer.try(:im_in_yr)
+      return 'print' if @tokenizer.try(:visible)
+      return 'return' if @tokenizer.try(:found_yr)
+      return 'switch' if @tokenizer.try(:wtf?)
+      return 'expression' if !next_expr_name.nil?
       nil
     end
 
-    def cast_stmt_next?
-      @tokenizer.try(:identifier, :is_now_a)
-    end
-
-    def print_stmt_next?
-      @tokenizer.try(:visible)
-    end
-
-    def input_stmt_next?
-      @tokenizer.try(:gimmeh)
-    end
-
-    def assignment_stmt_next?
-      @tokenizer.try(:identifier, :r)
-    end
-
-    def declaration_stmt_next?
-      @tokenizer.try(:i_has_a)
-    end
-
-    def if_then_else_stmt_next?
-      @tokenizer.try(:o_rly?)
-    end
-
-    def switch_stmt_next?
-      @tokenizer.try(:wtf?)
-    end
-
-    def break_stmt_next?
-      @tokenizer.try(:gtfo)
-    end
-
-    def return_stmt_next?
-      @tokenizer.try(:found_yr)
-    end
-
-    def loop_stmt_next?
-      @tokenizer.try(:im_in_yr)
-    end
-
-    def func_def_stmt_next?
-      @tokenizer.try(:how_duz_i)
-    end
-
-    def expr_stmt_next?
-      !next_expr_name.nil?
-    end
-
-    # Type ::= TT_NOOB | TT_TROOF | TT_NUMBR | TT_NUMBAR | TT_YARN
     def parse_type
       token = expect_token(:noob, :troof, :numbr, :numbar, :yarn)
       Ast::Type.new(token[:type])
     end
 
-    # CastStmt ::= IdentifierNode TT_ISNOWA TypeNode TT_NEWLINE
-    def parse_cast_stmt
+    def parse_cast_statement
       identifier = expect_token(:identifier)[:data]
       expect_token(:is_now_a)
       type = parse_type
@@ -163,8 +119,7 @@ module Layo
       Ast::CastStmt.new(identifier, type)
     end
 
-    # PrintStmt ::= TT_VISIBLE ExprNode + [ TT_BANG ] TT_NEWLINE
-    def parse_print_stmt
+    def parse_print_statement
       expect_token(:visible)
       expr_list = [parse_expr]
       until (name = next_expr_name).nil?
@@ -180,7 +135,7 @@ module Layo
     end
 
     # InputStmt ::= TT_GIMMEH IdentifierNode TT_NEWLINE
-    def parse_input_stmt
+    def parse_input_statement
       expect_token(:gimmeh)
       identifier = expect_token(:identifier)[:data]
       expect_token(:newline)
@@ -188,7 +143,7 @@ module Layo
     end
 
     # AssignmentStmt ::= Identifier TT_R Expr TT_NEWLINE
-    def parse_assignment_stmt
+    def parse_assignment_statement
       identifier = expect_token(:identifier)[:data]
       expect_token(:r)
       expr = parse_expr
@@ -197,7 +152,7 @@ module Layo
     end
 
     # DeclarationStmt ::= :i_has_a IdentifierNode [:itz ExprNode] TT_NEWLINE
-    def parse_declaration_stmt
+    def parse_declaration_statement
       expect_token(:i_has_a)
       identifier, initialization = expect_token(:identifier)[:data], nil
       if @tokenizer.peek[:type] == :itz
@@ -210,7 +165,7 @@ module Layo
     end
 
     # IfThenElseStmt ::= TT_ORLY TT_NEWLINE TT_YARLY TT_NEWLINE BlockNode ElseIf * [ :no_wai :newline BlockNode ] TT_OIC TT_NEWLINE
-    def parse_if_then_else_stmt
+    def parse_condition_statement
       expect_token(:o_rly?)
       expect_token(:newline)
       expect_token(:ya_rly)
@@ -248,7 +203,7 @@ module Layo
     end
 
     # SwitchStmt ::= TT_WTF TT_NEWLINE Case + [ :omgwtf :newline BlockNode ] TT_OIC TT_NEWLINE
-    def parse_switch_stmt
+    def parse_switch_statement
       expect_token(:wtf?)
       expect_token(:newline)
       case_list = [parse_case]
@@ -283,14 +238,14 @@ module Layo
     end
 
     # BreakStmt ::= TT_GTFO TT_NEWLINE
-    def parse_break_stmt
+    def parse_break_statement
       expect_token(:gtfo)
       expect_token(:newline)
       Ast::BreakStmt.new
     end
 
     # ReturnStmt ::= TT_FOUNDYR ExprNode TT_NEWLINE
-    def parse_return_stmt
+    def parse_return_statement
       expect_token(:found_yr)
       expr = parse_expr
       expect_token(:newline)
@@ -298,7 +253,7 @@ module Layo
     end
 
     # LoopStmt ::= TT_IMINYR IdentifierNode [ LoopUpdate ] [ LoopGuard ] Block TT_NEWLINE TT_IMOUTTAYR IdentifierNode TT_NEWLINE
-    def parse_loop_stmt
+    def parse_loop_statement
       loop_start = expect_token(:im_in_yr)
       label_begin = expect_token(:identifier)[:data]
       loop_update = loop_update_next? ? parse_loop_update : nil
@@ -345,7 +300,7 @@ module Layo
     end
 
     # FuncDefStmt ::= TT_HOWDUZ IdentifierNode [ TT_YR IdentifierNode [AN_YR IdentifierNode] * ] TT_NEWLINE BlockNode TT_IFUSAYSO TT_NEWLINE
-    def parse_func_def_stmt
+    def parse_function_statement
       expect_token(:how_duz_i)
       name = expect_token(:identifier)[:data]
       if @functions.has_key?(name)
@@ -372,7 +327,7 @@ module Layo
     end
 
     # ExprStmt ::= ExprNode TT_NEWLINE
-    def parse_expr_stmt
+    def parse_expression_statement
       expr = parse_expr
       expect_token(:newline)
       Ast::ExprStmt.new(expr)

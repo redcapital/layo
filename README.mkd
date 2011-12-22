@@ -46,7 +46,7 @@ Type = "NOOB" | "TROOF" | "NUMBR" | "NUMBAR" | "YARN" ;
 (* List of statements *)
 Statement = ( AssignmentStatement | BreakStatement | CastStatement |
   ConditionStatement | DeclarationStatement | ExpressionStatement |
-  FunctionDefinitionStatement | InputStatement | LoopStatement |
+  FunctionStatement | InputStatement | LoopStatement |
   PrintStatement | ReturnStatement | SwitchStatement ) , Newline ;
 AssignmentStatement = Identifier , "R" , Expression ;
 BreakStatement = "GTFO" ;
@@ -58,7 +58,7 @@ ConditionStatement = "O RLY?" , Newline , "YA RLY" , Newline , Block ,
 DeclarationStatement = "I HAS A" , Identifier ,
   [ "ITZ" , Expression ] ; (* initialization expression *)
 ExpressionStatement = Expression ;
-FunctionDefinitionStatement = "HOW DUZ I" , Identifier ,
+FunctionStatement = "HOW DUZ I" , Identifier ,
   [ "YR" , Identifier , { "AN_YR" , Identifier } ] , (* argument list *)
   Newline , Block , "IF U SAY SO" ;
 InputStatement = "GIMMEH" , Identifier ;

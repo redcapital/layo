@@ -16,7 +16,7 @@ describe Parser do
       {:type => :identifier, :data => 'abc'},
       {:type => :is_now_a}, {:type => :newline}
     )
-    @parser.cast_stmt_next?.must_equal true
+    @parser.next_statement.must_equal 'cast'
     @tokenizer.peek.must_equal :type => :identifier, :data => 'abc'
   end
 
@@ -39,11 +39,11 @@ describe Parser do
     node.block.must_be_same_as block
   end
 
-  it "should parse block node" do
+  it "should parse block" do
     statements = [mock]
     @parser.stubs(:skip_newlines)
-    @parser.stubs(:parse_print_stmt).returns(*statements)
-    @parser.stubs(:next_stmt_name).returns('print', nil)
+    @parser.stubs(:parse_print_statement).returns(*statements)
+    @parser.stubs(:next_statement).returns('print', nil)
     node = @parser.parse_block
     node.must_be_instance_of Block
     node.stmt_list.must_equal statements
@@ -65,13 +65,13 @@ describe Parser do
       {:type => :identifier, :data => 'abc'},
       {:type => :is_now_a}, {:type => :newline}
     )
-    node = @parser.parse_cast_stmt
+    node = @parser.parse_cast_statement
     node.must_be_instance_of CastStmt
     node.identifier.must_equal 'abc'
     node.type.must_be_same_as type
   end
 
-  describe "#parse_print_stmt" do
+  describe "#parse_print_statement" do
     it "should parse print stmt with exclamation mark" do
       @tokenizer.stubs(:next_item).returns(
         {:type => :visible}, {:type => :exclamation}, {:type => :newline}
@@ -79,7 +79,7 @@ describe Parser do
       expr = mock
       @parser.expects(:parse_expr).returns(expr)
       @parser.stubs(:next_expr_name).returns(nil)
-      node = @parser.parse_print_stmt
+      node = @parser.parse_print_statement
       node.must_be_instance_of PrintStmt
       node.expr_list.size.must_equal 1
       node.expr_list.first.must_be_same_as expr
@@ -93,7 +93,7 @@ describe Parser do
       exprs = [mock, mock]
       @parser.stubs(:parse_expr).returns(*exprs)
       @parser.stubs(:next_expr_name).returns('constant', nil)
-      node = @parser.parse_print_stmt
+      node = @parser.parse_print_statement
       node.must_be_instance_of PrintStmt
       node.expr_list.must_equal exprs
       node.suppress.must_equal false
@@ -105,7 +105,7 @@ describe Parser do
       {:type => :gimmeh}, {:type => :identifier, :data => 'var'},
       {:type => :newline}
     )
-    node = @parser.parse_input_stmt
+    node = @parser.parse_input_statement
     node.must_be_instance_of InputStmt
     node.identifier.must_equal 'var'
   end
@@ -117,19 +117,19 @@ describe Parser do
     )
     expr = mock
     @parser.expects(:parse_expr).returns(expr)
-    node = @parser.parse_assignment_stmt
+    node = @parser.parse_assignment_statement
     node.must_be_instance_of AssignmentStmt
     node.identifier.must_equal 'abc'
     node.expr.must_be_same_as expr
   end
 
-  describe "#parse_declaration_stmt" do
+  describe "#parse_declaration_statement" do
     it "should parse declaration stmt without initialization" do
       @tokenizer.stubs(:next_item).returns(
         {:type => :i_has_a}, {:type => :identifier, :data => 'abc'},
         {:type => :newline}
       )
-      node = @parser.parse_declaration_stmt
+      node = @parser.parse_declaration_statement
       node.must_be_instance_of DeclarationStmt
       node.identifier.must_equal 'abc'
       node.initialization.must_be_nil
@@ -142,14 +142,14 @@ describe Parser do
       )
       init = mock
       @parser.expects(:parse_expr).returns(init)
-      node = @parser.parse_declaration_stmt
+      node = @parser.parse_declaration_statement
       node.must_be_instance_of DeclarationStmt
       node.identifier.must_equal 'abc'
       node.initialization.must_be_same_as init
     end
   end
 
-  describe "#parse_if_then_else_stmt" do
+  describe "#parse_condition_statement" do
     before do
       @tokenizer_expectation = @tokenizer.stubs(:next_item).returns(
         {:type => :o_rly?}, {:type => :newline},
@@ -162,7 +162,7 @@ describe Parser do
     it "should parse if then else stmt without else's" do
       @tokenizer_expectation.then.returns({:type => :oic}, {:type => :newline})
       @parser.stubs(:elseif_next?).returns(false)
-      node = @parser.parse_if_then_else_stmt
+      node = @parser.parse_condition_statement
       node.must_be_instance_of IfThenElseStmt
       node.block.must_be_same_as @block
       node.elseif_list.must_be_empty
@@ -180,7 +180,7 @@ describe Parser do
       else_block = mock
       @parser_expectation.then.returns(else_block)
 
-      node = @parser.parse_if_then_else_stmt
+      node = @parser.parse_condition_statement
 
       node.must_be_instance_of IfThenElseStmt
       node.block.must_be_same_as @block
@@ -212,7 +212,7 @@ describe Parser do
     @parser.stubs(:parse_case).returns(*cases)
     @parser.stubs(:case_next?).returns(true, false)
     @parser.expects(:parse_block).returns(default_case)
-    node = @parser.parse_switch_stmt
+    node = @parser.parse_switch_statement
     node.must_be_instance_of SwitchStmt
     node.case_list.must_equal cases
     node.default_case.must_be_same_as default_case
@@ -231,7 +231,7 @@ describe Parser do
 
   it "should parse break stmt" do
     @tokenizer.stubs(:next_item).returns({:type => :gtfo}, {:type => :newline})
-    node = @parser.parse_break_stmt
+    node = @parser.parse_break_statement
     node.must_be_instance_of BreakStmt
   end
 
@@ -239,12 +239,12 @@ describe Parser do
     @tokenizer.stubs(:next_item).returns({:type => :found_yr}, {:type => :newline})
     expr = mock
     @parser.expects(:parse_expr).returns(expr)
-    node = @parser.parse_return_stmt
+    node = @parser.parse_return_statement
     node.must_be_instance_of ReturnStmt
     node.expr.must_be_same_as expr
   end
 
-  describe "#parse_loop_stmt" do
+  describe "#parse_loop_statement" do
     it "should parse loop stmt" do
       @tokenizer.stubs(:next_item).returns(
         {:type => :im_in_yr, :line => 1, :pos => 1},
@@ -258,7 +258,7 @@ describe Parser do
       @parser.expects(:parse_loop_update).returns(loop_update)
       @parser.expects(:parse_loop_guard).returns(loop_guard)
       @parser.expects(:parse_block).returns(block)
-      node = @parser.parse_loop_stmt
+      node = @parser.parse_loop_statement
       node.must_be_instance_of LoopStmt
       node.label.must_equal 'abc'
       node.loop_update.must_be_same_as loop_update
@@ -275,7 +275,7 @@ describe Parser do
       )
       @parser.expects(:loop_update_next?).returns(false)
       @parser.expects(:loop_guard_next?).returns(false)
-      lambda { @parser.parse_loop_stmt }.must_raise Layo::SyntaxError
+      lambda { @parser.parse_loop_statement }.must_raise Layo::SyntaxError
     end
   end
 
@@ -306,7 +306,7 @@ describe Parser do
     )
     block = mock
     @parser.expects(:parse_block).returns(block)
-    node = @parser.parse_func_def_stmt
+    node = @parser.parse_function_statement
     node.must_be_instance_of FuncDefStmt
     node.name.must_equal 'hello'
     node.block.must_be_same_as block
@@ -317,7 +317,7 @@ describe Parser do
     @tokenizer.stubs(:next_item).returns({:type => :newline})
     expr = mock
     @parser.expects(:parse_expr).returns(expr)
-    node = @parser.parse_expr_stmt
+    node = @parser.parse_expression_statement
     node.must_be_instance_of ExprStmt
     node.expr.must_be_same_as expr
   end
