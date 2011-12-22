@@ -1,8 +1,8 @@
 # About
 
 Layo is a LOLCODE interpreter written in Ruby. It tries to conform to the
-[LOLCODE 1.2 specification](http://lolcode.com/specs/1.2) and supports 
-everything described there. Note that I purposely did not use any parser 
+[LOLCODE 1.2 specification](http://lolcode.com/specs/1.2) and supports
+everything described there. Note that I purposely did not use any parser
 generators such as `Racc`.
 
 Current version of Layo is 1.0
@@ -27,6 +27,67 @@ Oh, and there are tests too. In order to run them, you have to install `mocha`:
 HAI 1.2
 VISIBLE "Hello world!"
 KTHXBYE
+```
+
+# Grammar
+
+Layo uses the following context-free grammar in Extended Backus-Naur Form
+to parse programs:
+
+```
+Program = "HAI 1.2" , Newline , Block , "KTHXBYE" ;
+Block = { Statement } ;
+Newline = ? Newline character (\r, \n, \r\n) or comma ? ;
+Identifier = Letter , { Letter | Digit | "_" } ;
+Letter = ? Capital or lowercase latin letter ? ;
+Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+Type = "NOOB" | "TROOF" | "NUMBR" | "NUMBAR" | "YARN" ;
+
+(* List of statements *)
+Statement = ( AssignmentStatement | BreakStatement | CastStatement |
+  ConditionStatement | DeclarationStatement | ExpressionStatement |
+  FunctionDefinitionStatement | InputStatement | LoopStatement |
+  PrintStatement | ReturnStatement | SwitchStatement ) , Newline ;
+AssignmentStatement = Identifier , "R" , Expression ;
+BreakStatement = "GTFO" ;
+CastStatement = Identifier , "IS NOW A" , Type ;
+ConditionStatement = "O RLY?" , Newline , "YA RLY" , Newline , Block ,
+  { "MEBBE" , Expression , Newline , Block } , (* else if branches *)
+  [ "NO WAI" , Newline , Block ] , (* else branch *)
+  "OIC" ;
+DeclarationStatement = "I HAS A" , Identifier ,
+  [ "ITZ" , Expression ] ; (* initialization expression *)
+ExpressionStatement = Expression ;
+FunctionDefinitionStatement = "HOW DUZ I" , Identifier ,
+  [ "YR" , Identifier , { "AN_YR" , Identifier } ] , (* argument list *)
+  Newline , Block , "IF U SAY SO" ;
+InputStatement = "GIMMEH" , Identifier ;
+LoopStatement = "IM IN YR" , Identifier ,
+  (* loop operation *)
+  [ ( "UPPIN" | "NERFIN" | Identifier ) , "YR" , Identifier ] ,
+  (* loop condition *)
+  [ "TIL" | "WILE" , Expression ] ,
+  Block , "IM OUTTA YR" , Identifier ;
+PrintStatement = "VISIBLE" , Expression , { Expression } , [ "!" ] ;
+ReturnStatement = "FOUND YR" , Expression ;
+SwitchStatement = "WTF?" , Newline , SwitchCase , { SwitchCase } ,
+  [ "OMGWTF" , Newline , Block ] , (* default case *)
+  "OIC" ;
+SwitchCase = "OMG" , Expression , Newline , Block ;
+
+(* List of expressions *)
+Expression = BinaryExpression | CastExpression | ConstantExpression |
+  IdentifierExpression | NaryExpression | UnaryExpression ;
+BinaryExpression = ( "SUM OF" | "DIFF OF" | "PRODUKT OF" | "QUOSHUNT OF" |
+  "MOD OF" | "BIGGR OF" | "SMALLR OF" | "BOTH OF" | "EITHER OF" | "WON OF" |
+  "BOTH SAEM" | "DIFFRINT" ) , Expression , Operand ;
+Operand = [ "AN" ] , Expression ;
+CastExpression = "MAEK" , Expression , "A" , Type ;
+ConstantExpression = String | Number | "WIN" | "FAIL" ;
+IdentifierExpression = Identifier ;
+NaryExpression = ( "ALL OF" | "ANY OF" | "SMOOSH" ) ,
+  Expression , Operand , { Operand } ;
+UnaryExpression = "NOT" , Expression ;
 ```
 
 # TODO
