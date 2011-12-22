@@ -9,7 +9,7 @@ module Layo
 
     def initialize(tokenizer)
       @tokenizer = tokenizer
-      @functions = {}
+      reset
     end
 
     def reset
@@ -54,7 +54,7 @@ module Layo
       @tokenizer.reset_peek
     end
 
-    def parse_main
+    def parse_program
       skip_newlines
       expect_token(:hai)
       version = expect_token(:float)
@@ -63,10 +63,10 @@ module Layo
       expect_token(:kthxbye)
       skip_newlines
       expect_token(:eof)
-      Ast::Main.new(version[:data], block)
+      Ast::Program.new(version[:data], block)
     end
 
-    alias_method :parse, :parse_main
+    alias_method :parse, :parse_program
 
     def expect_token(*types)
       token = @tokenizer.next

@@ -26,15 +26,15 @@ describe Parser do
     @tokenizer.peek.must_equal :type => :string, :data => 'abc'
   end
 
-  it 'should parse main node' do
+  it 'should parse program' do
     @tokenizer.stubs(:next_item).returns(
       {:type => :hai}, {:type => :float, :data => 1.2},
       {:type => :newline}, {:type => :kthxbye}, {:type => :eof}
     )
     block = mock
     @parser.expects(:parse_block).returns(block)
-    node = @parser.parse_main
-    node.must_be_instance_of Main
+    node = @parser.parse_program
+    node.must_be_instance_of Program
     node.version.must_equal 1.2
     node.block.must_be_same_as block
   end

@@ -1,6 +1,6 @@
 # Main nodes
 require_relative 'ast/node'
-require_relative 'ast/main'
+require_relative 'ast/program'
 require_relative 'ast/block'
 require_relative 'ast/type'
 
