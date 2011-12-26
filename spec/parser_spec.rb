@@ -49,26 +49,15 @@ describe Parser do
     node.statement_list.must_equal statements
   end
 
-  it "should parse type node" do
-    [:troof, :yarn, :numbr, :numbar, :noob].each do |value|
-      @tokenizer.stubs(:next_item).returns :type => value
-      node = @parser.parse_type
-      node.must_be_instance_of Type
-      node.data.must_equal value
-    end
-  end
-
   it "should parse cast statement" do
-    cast_to = mock
-    @parser.expects(:parse_type).returns(cast_to)
     @tokenizer.stubs(:next_item).returns(
-      {:type => :identifier, :data => 'abc'},
-      {:type => :is_now_a}, {:type => :newline}
+      { type: :identifier, data: 'abc' },
+      { type: :is_now_a}, { type: :troof }, { type: :newline }
     )
     node = @parser.parse_cast_statement
     node.type.must_equal 'cast'
     node.identifier.must_equal 'abc'
-    node.cast_to.must_be_same_as cast_to
+    node.to.must_equal :troof
   end
 
   describe "#parse_print_statement" do
@@ -81,8 +70,8 @@ describe Parser do
       @parser.stubs(:next_expr_name).returns(nil)
       node = @parser.parse_print_statement
       node.type.must_equal 'print'
-      node.expr_list.size.must_equal 1
-      node.expr_list.first.must_be_same_as expr
+      node.expressions.size.must_equal 1
+      node.expressions.first.must_be_same_as expr
       node.suppress.must_equal true
     end
 
@@ -95,7 +84,7 @@ describe Parser do
       @parser.stubs(:next_expr_name).returns('constant', nil)
       node = @parser.parse_print_statement
       node.type.must_equal 'print'
-      node.expr_list.must_equal exprs
+      node.expressions.must_equal exprs
       node.suppress.must_equal false
     end
   end
@@ -120,7 +109,7 @@ describe Parser do
     node = @parser.parse_assignment_statement
     node.type.must_equal 'assignment'
     node.identifier.must_equal 'abc'
-    node.expr.must_be_same_as expr
+    node.expression.must_be_same_as expr
   end
 
   describe "#parse_declaration_statement" do
@@ -159,74 +148,55 @@ describe Parser do
       @parser_expectation = @parser.stubs(:parse_block).returns(@block)
     end
 
-    it "should parse if then else statement without else's" do
+    it "should parse conditional statement without else's" do
       @tokenizer_expectation.then.returns({:type => :oic}, {:type => :newline})
-      @parser.stubs(:elseif_next?).returns(false)
       node = @parser.parse_condition_statement
       node.type.must_equal 'condition'
-      node.block.must_be_same_as @block
-      node.elseif_list.must_be_empty
-      node.else_block.must_be_nil
+      node.then.must_be_same_as @block
+      node.elseif.must_be_empty
     end
 
-    it "should parse if then else statement with else and elseif's" do
+    it "should parse conditional statement with else and elseif's" do
       @tokenizer_expectation.then.returns(
+        { type: :mebbe }, { type: :newline },
         {:type => :no_wai}, {:type => :newline},
         {:type => :oic}, {:type => :newline}
       )
-      @parser.stubs(:elseif_next?).returns(true, true, false)
-      elseif_list = [mock, mock]
-      @parser.stubs(:parse_elseif).returns(*elseif_list)
+      elseif_condition = mock
+      elseif_block = mock
       else_block = mock
-      @parser_expectation.then.returns(else_block)
+      @parser.stubs(:parse_expr).returns(elseif_condition)
+      @parser_expectation.then.returns(elseif_block, else_block)
 
       node = @parser.parse_condition_statement
 
       node.type.must_equal 'condition'
-      node.block.must_be_same_as @block
-      node.elseif_list.must_equal elseif_list
-      node.else_block.must_be_same_as else_block
+      node.then.must_be_same_as @block
+      node.elseif.first[:condition].must_be_same_as elseif_condition
+      node.elseif.first[:block].must_be_same_as elseif_block
+      node.else.must_be_same_as else_block
     end
-  end
-
-  it "should parse elseif" do
-    @tokenizer.stubs(:next_item).returns(
-      {:type => :mebbe}, {:type => :newline}
-    )
-    block, expr = mock, mock
-    @parser.expects(:parse_block).returns(block)
-    @parser.expects(:parse_expr).returns(expr)
-    node = @parser.parse_elseif
-    node.must_be_instance_of ElseIf
-    node.block.must_be_same_as block
-    node.expr.must_be_same_as expr
   end
 
   it "should parse switch statement" do
     @tokenizer.stubs(:next_item).returns(
-      {:type => :wtf?}, {:type => :newline}, {:type => :omgwtf},
-      {:type => :newline}, {:type => :oic}, {:type => :newline}
+      {:type => :wtf?}, {:type => :newline},
+      # One case
+      { type: :omg }, { type: :newline },
+      # Default case
+      {:type => :omgwtf}, {:type => :newline},
+      {:type => :oic}, {:type => :newline}
     )
-    cases = [mock, mock]
-    default_case = mock
-    @parser.stubs(:parse_case).returns(*cases)
-    @parser.stubs(:case_next?).returns(true, false)
-    @parser.expects(:parse_block).returns(default_case)
-    node = @parser.parse_switch_statement
-    node.type.must_equal 'switch'
-    node.case_list.must_equal cases
-    node.default_case.must_be_same_as default_case
-  end
+    kase_expr, kase, default = mock, mock, mock
+    @parser.expects(:parse_expr).returns(kase_expr)
+    @parser.stubs(:parse_block).returns(kase, default)
 
-  it "should parse case" do
-    @tokenizer.stubs(:next_item).returns({:type => :omg}, {:type => :newline})
-    expr, block = mock, mock
-    @parser.expects(:parse_expr).returns(expr)
-    @parser.expects(:parse_block).returns(block)
-    node = @parser.parse_case
-    node.must_be_instance_of Case
-    node.expr.must_be_same_as expr
-    node.block.must_be_same_as block
+    node = @parser.parse_switch_statement
+
+    node.type.must_equal 'switch'
+    node.cases.first[:expression].must_be_same_as kase_expr
+    node.cases.first[:block].must_be_same_as kase
+    node.default.must_be_same_as default
   end
 
   it "should parse break statement" do
@@ -241,65 +211,47 @@ describe Parser do
     @parser.expects(:parse_expr).returns(expr)
     node = @parser.parse_return_statement
     node.type.must_equal 'return'
-    node.expr.must_be_same_as expr
+    node.expression.must_be_same_as expr
   end
 
   describe "#parse_loop_statement" do
     it "should parse loop statement" do
       @tokenizer.stubs(:next_item).returns(
-        {:type => :im_in_yr, :line => 1, :pos => 1},
-        {:type => :identifier, :data => 'abc'},
-        {:type => :im_outta_yr},
-        {:type => :identifier, :data => 'abc'}, {:type => :newline}
+        {:type => :im_in_yr}, {:type => :identifier, :data => 'abc'},
+        # Loop operation
+        { type: :uppin }, { type: :yr }, { type: :identifier, data: 'i' },
+        # Loop condition
+        { type: :wile },
+        {:type => :im_outta_yr}, {:type => :identifier, :data => 'abc'},
+        {:type => :newline}
       )
-      loop_update, loop_guard, block = mock, mock, mock
-      @parser.expects(:loop_update_next?).returns(true)
-      @parser.expects(:loop_guard_next?).returns(true)
-      @parser.expects(:parse_loop_update).returns(loop_update)
-      @parser.expects(:parse_loop_guard).returns(loop_guard)
+      expr, block = mock, mock
+      @parser.expects(:parse_expr).returns(expr)
       @parser.expects(:parse_block).returns(block)
+
       node = @parser.parse_loop_statement
+
       node.type.must_equal 'loop'
       node.label.must_equal 'abc'
-      node.loop_update.must_be_same_as loop_update
-      node.loop_guard.must_be_same_as loop_guard
+      node.op.must_equal :uppin
+      node.counter.must_equal 'i'
+      node.guard[:type].must_equal :wile
+      node.guard[:expression].must_be_same_as expr
       node.block.must_be_same_as block
     end
 
-    it "should raise exception if label's are not equal" do
+    it "should raise exception if labels are not equal" do
       @tokenizer.stubs(:next_item).returns(
         {:type => :im_in_yr, :line => 1, :pos => 1},
         {:type => :identifier, :data => 'foo'},
         {:type => :newline}, {:type => :im_outta_yr},
         {:type => :identifier, :data => 'bar'}, {:type => :newline}
       )
-      @parser.expects(:loop_update_next?).returns(false)
-      @parser.expects(:loop_guard_next?).returns(false)
       lambda { @parser.parse_loop_statement }.must_raise Layo::SyntaxError
     end
   end
 
-  it "should parse loop update" do
-    @tokenizer.stubs(:next_item).returns(
-      {:type => :nerfin}, {:type => :yr}, {:type => :identifier, :data => 'foo'}
-    )
-    node = @parser.parse_loop_update
-    node.update_op[:type].must_equal :nerfin
-    node.must_be_instance_of LoopUpdate
-    node.identifier[:data].must_equal 'foo'
-  end
-
-  it "should parse loop guard" do
-    @tokenizer.stubs(:next_item).returns({:type => :wile})
-    expr = mock
-    @parser.expects(:parse_expr).returns(expr)
-    node = @parser.parse_loop_guard
-    node.must_be_instance_of LoopGuard
-    node.condition_type.must_equal :wile
-    node.condition.must_be_same_as expr
-  end
-
-  it "should parse func def statement" do
+  it "should parse function statement" do
     @tokenizer.stubs(:next_item).returns(
       {:type => :how_duz_i}, {:type => :identifier, :data => 'hello'},
       {:type => :newline}, {:type => :if_u_say_so}, {:type => :newline}
@@ -313,24 +265,23 @@ describe Parser do
     node.args.must_equal []
   end
 
-  it "should parse expr statement" do
+  it "should parse expression statement" do
     @tokenizer.stubs(:next_item).returns({:type => :newline})
     expr = mock
     @parser.expects(:parse_expr).returns(expr)
     node = @parser.parse_expression_statement
     node.type.must_equal 'expression'
-    node.expr.must_be_same_as expr
+    node.expression.must_be_same_as expr
   end
 
   it "should parse cast expr" do
-    @tokenizer.stubs(:next_item).returns({:type => :maek}, {:type => :a})
-    expr, type = mock, mock
+    @tokenizer.stubs(:next_item).returns({:type => :maek}, {:type => :a}, {:type => :troof})
+    expr = mock
     @parser.expects(:parse_expr).returns(expr)
-    @parser.expects(:parse_type).returns(type)
     node = @parser.parse_cast_expr
     node.must_be_instance_of CastExpr
     node.expr.must_be_same_as expr
-    node.type.must_be_same_as type
+    node.type.must_equal :troof
   end
 
   describe "#parse_constant_expr" do

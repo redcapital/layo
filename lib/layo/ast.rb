@@ -1,14 +1,9 @@
 require_relative 'ast/node'
 require_relative 'ast/program'
 require_relative 'ast/block'
-require_relative 'ast/type'
 
 # Statement nodes
 require_relative 'ast/statement'
-require_relative 'ast/else_if'
-require_relative 'ast/case'
-require_relative 'ast/loop_update'
-require_relative 'ast/loop_guard'
 
 # Expression nodes
 require_relative 'ast/expr'

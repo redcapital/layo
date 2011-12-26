@@ -68,7 +68,12 @@ module Layo
 
     def expect_token(*types)
       token = @tokenizer.next
-      raise UnexpectedTokenError, token unless types.include?(token[:type])
+      #raise UnexpectedTokenError, token unless types.include?(token[:type])
+      unless types.include?(token[:type])
+        puts "expected: #{types}"
+        puts "got: #{token}"
+        raise UnexpectedTokenError, token
+      end
       token
     end
 
@@ -106,62 +111,57 @@ module Layo
       nil
     end
 
-    def parse_type
-      token = expect_token(:noob, :troof, :numbr, :numbar, :yarn)
-      Ast::Type.new(token[:type])
-    end
-
     def parse_cast_statement
-      identifier = expect_token(:identifier)[:data]
+      attrs = { identifier: expect_token(:identifier)[:data] }
       expect_token(:is_now_a)
-      type = parse_type
+      attrs[:to] = expect_token(:noob, :troof, :numbr, :numbar, :yarn)[:type]
       expect_token(:newline)
-      Ast::Statement.new('cast', {identifier: identifier, cast_to: type})
+      Ast::Statement.new('cast', attrs)
     end
 
     def parse_print_statement
       expect_token(:visible)
-      expr_list = [parse_expr]
+      attrs = { expressions: [parse_expr] }
       until (name = next_expr_name).nil?
-        expr_list << parse_expr(name)
+        attrs[:expressions] << parse_expr(name)
       end
       token = expect_token(:exclamation, :newline)
-      suppress = false
+      attrs[:suppress] = false
       if token[:type] == :exclamation
         expect_token(:newline)
-        suppress = true
+        attrs[:suppress] = true
       end
-      Ast::Statement.new('print', {expr_list: expr_list, suppress: suppress})
+      Ast::Statement.new('print', attrs)
     end
 
     # InputStmt ::= TT_GIMMEH IdentifierNode TT_NEWLINE
     def parse_input_statement
       expect_token(:gimmeh)
-      identifier = expect_token(:identifier)[:data]
+      attrs = { identifier: expect_token(:identifier)[:data] }
       expect_token(:newline)
-      Ast::Statement.new('input', {identifier: identifier})
+      Ast::Statement.new('input', attrs)
     end
 
     # AssignmentStmt ::= Identifier TT_R Expr TT_NEWLINE
     def parse_assignment_statement
-      identifier = expect_token(:identifier)[:data]
+      attrs = { identifier: expect_token(:identifier)[:data] }
       expect_token(:r)
-      expr = parse_expr
+      attrs[:expression] = parse_expr
       expect_token(:newline)
-      Ast::Statement.new('assignment', {identifier: identifier, expr: expr})
+      Ast::Statement.new('assignment', attrs)
     end
 
     # DeclarationStmt ::= :i_has_a IdentifierNode [:itz ExprNode] TT_NEWLINE
     def parse_declaration_statement
       expect_token(:i_has_a)
-      identifier, initialization = expect_token(:identifier)[:data], nil
+      attrs = { identifier: expect_token(:identifier)[:data] }
       if @tokenizer.peek[:type] == :itz
         @tokenizer.next
-        initialization = parse_expr
+        attrs[:initialization] = parse_expr
       end
       @tokenizer.unpeek
       expect_token(:newline)
-      Ast::Statement.new('declaration', {identifier: identifier, initialization: initialization})
+      Ast::Statement.new('declaration', attrs)
     end
 
     # IfThenElseStmt ::= TT_ORLY TT_NEWLINE TT_YARLY TT_NEWLINE BlockNode ElseIf * [ :no_wai :newline BlockNode ] TT_OIC TT_NEWLINE
@@ -170,72 +170,49 @@ module Layo
       expect_token(:newline)
       expect_token(:ya_rly)
       expect_token(:newline)
-      block = parse_block
-      elseif_list = []
-      while elseif_next?
-        elseif_list << parse_elseif
-      end
-      else_block = nil
-      if @tokenizer.peek[:type] == :no_wai
-        @tokenizer.next
+      attrs = { then: parse_block, elseif: [] }
+      while @tokenizer.peek[:type] == :mebbe
+        expect_token(:mebbe)
+        condition = parse_expr
         expect_token(:newline)
-        else_block = parse_block
+        attrs[:elseif] << { condition: condition, block: parse_block }
+      end
+      @tokenizer.unpeek
+      if @tokenizer.peek[:type] == :no_wai
+        expect_token(:no_wai)
+        expect_token(:newline)
+        attrs[:else] = parse_block
       end
       @tokenizer.unpeek
       expect_token(:oic)
       expect_token(:newline)
-      Ast::Statement.new('condition', {block: block, elseif_list: elseif_list,
-                         else_block: else_block})
-    end
-
-    def elseif_next?
-      result = @tokenizer.peek[:type] == :mebbe
-      @tokenizer.unpeek
-      result
-    end
-
-    # ElseIf ::= TT_MEBBE ExprNode TT_NEWLINE BlockNode
-    def parse_elseif
-      expect_token(:mebbe)
-      expr = parse_expr
-      expect_token(:newline)
-      block = parse_block
-      Ast::ElseIf.new(expr, block)
+      Ast::Statement.new('condition', attrs)
     end
 
     # SwitchStmt ::= TT_WTF TT_NEWLINE Case + [ :omgwtf :newline BlockNode ] TT_OIC TT_NEWLINE
     def parse_switch_statement
       expect_token(:wtf?)
       expect_token(:newline)
-      case_list = [parse_case]
-      while case_next?
-        case_list << parse_case
-      end
-      default_case = nil
-      if @tokenizer.peek[:type] == :omgwtf
-        @tokenizer.next
+      parse_case = lambda do
+        expect_token(:omg)
+        expression = parse_expr
         expect_token(:newline)
-        default_case = parse_block
+        { expression: expression, block: parse_block }
+      end
+      attrs = { cases: [parse_case.call] }
+      while @tokenizer.peek[:type] == :omg
+        attrs[:cases] << parse_case.call
+      end
+      @tokenizer.unpeek
+      if @tokenizer.peek[:type] == :omgwtf
+        expect_token(:omgwtf)
+        expect_token(:newline)
+        attrs[:default] = parse_block
       end
       @tokenizer.unpeek
       expect_token(:oic)
       expect_token(:newline)
-      Ast::Statement.new('switch', {case_list: case_list, default_case: default_case})
-    end
-
-    def case_next?
-      result = @tokenizer.peek[:type] == :omg
-      @tokenizer.unpeek
-      result
-    end
-
-    # Case ::= TT_OMG ExprNode TT_NEWLINE BlockNode
-    def parse_case
-      expect_token(:omg)
-      expr = parse_expr
-      expect_token(:newline)
-      block = parse_block
-      Ast::Case.new(expr, block)
+      Ast::Statement.new('switch', attrs)
     end
 
     # BreakStmt ::= TT_GTFO TT_NEWLINE
@@ -248,56 +225,41 @@ module Layo
     # ReturnStmt ::= TT_FOUNDYR ExprNode TT_NEWLINE
     def parse_return_statement
       expect_token(:found_yr)
-      expr = parse_expr
+      attrs = { expression: parse_expr }
       expect_token(:newline)
-      Ast::Statement.new('return', {expr: expr})
+      Ast::Statement.new('return', attrs)
     end
 
     # LoopStmt ::= TT_IMINYR IdentifierNode [ LoopUpdate ] [ LoopGuard ] Block TT_NEWLINE TT_IMOUTTAYR IdentifierNode TT_NEWLINE
     def parse_loop_statement
       loop_start = expect_token(:im_in_yr)
       label_begin = expect_token(:identifier)[:data]
-      loop_update = loop_update_next? ? parse_loop_update : nil
-      loop_guard = loop_guard_next? ? parse_loop_guard : nil
-      block = parse_block
+      attrs = {}
+      if [:uppin, :nerfin, :identifier].include?(@tokenizer.peek[:type])
+        attrs[:op] = expect_token(:uppin, :nerfin, :identifier)
+        expect_token(:yr)
+        attrs[:op] = attrs[:op][:type] == :identifier ? attrs[:op][:data] :
+          attrs[:op][:type]
+        attrs[:counter] = expect_token(:identifier)[:data]
+      end
+      @tokenizer.unpeek
+      if [:til, :wile].include?(@tokenizer.peek[:type])
+        attrs[:guard] = { type: expect_token(:til, :wile)[:type] }
+        attrs[:guard][:expression] = parse_expr
+      end
+      @tokenizer.unpeek
+      attrs[:block] = parse_block
       expect_token(:im_outta_yr)
       label_end = expect_token(:identifier)[:data]
       expect_token(:newline)
       unless label_begin == label_end
         raise SyntaxError.new(
           loop_start[:line], loop_start[:pos],
-          "Loop label's don't match: '#{label_begin}' and '#{label_end}'"
+          "Loop labels don't match: '#{label_begin}' and '#{label_end}'"
         )
       end
-      Ast::Statement.new('loop', {label: label_begin, loop_update: loop_update, loop_guard: loop_guard, block: block})
-    end
-
-    def loop_update_next?
-      result = false
-      if [:uppin, :nerfin, :identifier].include?(@tokenizer.peek[:type])
-        result = @tokenizer.peek[:type] == :yr
-        @tokenizer.unpeek
-      end
-      @tokenizer.unpeek
-      result
-    end
-
-    # LoopUpdate ::= [:uppin | :nerfin | :identifier] TT_YR IdentifierNode
-    def parse_loop_update
-      update_op = expect_token(:uppin, :nerfin, :identifier)
-      expect_token(:yr)
-      Ast::LoopUpdate.new(update_op, expect_token(:identifier))
-    end
-
-    def loop_guard_next?
-      result = [:til, :wile].include?(@tokenizer.peek[:type])
-      @tokenizer.unpeek
-      result
-    end
-
-    def parse_loop_guard
-      token = expect_token(:til, :wile)
-      Ast::LoopGuard.new(token[:type], parse_expr)
+      attrs[:label] = label_begin
+      Ast::Statement.new('loop', attrs)
     end
 
     # FuncDefStmt ::= TT_HOWDUZ IdentifierNode [ TT_YR IdentifierNode [AN_YR IdentifierNode] * ] TT_NEWLINE BlockNode TT_IFUSAYSO TT_NEWLINE
@@ -324,14 +286,14 @@ module Layo
       block = parse_block
       expect_token(:if_u_say_so)
       expect_token(:newline)
-      Ast::Statement.new('function', {name: name, args: args, block: block})
+      Ast::Statement.new('function', { name: name, args: args, block: block })
     end
 
     # ExprStmt ::= ExprNode TT_NEWLINE
     def parse_expression_statement
-      expr = parse_expr
+      attrs = { expression: parse_expr }
       expect_token(:newline)
-      Ast::Statement.new('expression', {expr: expr})
+      Ast::Statement.new('expression', attrs)
     end
 
     # Expr ::= CastExpr | ConstantExpr | IdentifierExpr | UnaryOpExpr | BinaryOpExpr | NaryOpExpr
@@ -345,7 +307,8 @@ module Layo
       expect_token(:maek)
       expr = parse_expr
       expect_token(:a)
-      Ast::CastExpr.new(expr, parse_type)
+      type = expect_token(:noob, :troof, :numbr, :numbar, :yarn)[:type]
+      Ast::CastExpr.new(expr, type)
     end
 
     def next_expr_name(restore_peek = true)

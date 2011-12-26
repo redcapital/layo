@@ -46,8 +46,9 @@ module Layo
     end
 
     def eval_assignment_stmt(stmt)
-      var = @vtable[stmt.identifier]
-      @vtable[stmt.identifier] = eval_expr(stmt.expr)
+      # We should access by variable name first to ensure it's defined
+      @vtable[stmt.identifier]
+      @vtable[stmt.identifier] = eval_expr(stmt.expression)
     end
 
     def eval_break_stmt(stmt)
@@ -56,8 +57,8 @@ module Layo
 
     def eval_cast_stmt(stmt)
       var = @vtable[stmt.identifier]
-      var[:value] = cast(var, stmt.cast_to.data, false)
-      var[:type] = stmt.cast_to.data
+      var[:value] = cast(var, stmt.to, false)
+      var[:type] = stmt.to
     end
 
     def eval_declaration_stmt(stmt)
@@ -71,7 +72,7 @@ module Layo
     end
 
     def eval_expression_stmt(stmt)
-      @vtable['IT'] = eval_expr(stmt.expr)
+      @vtable['IT'] = eval_expr(stmt.expression)
     end
 
     def eval_function_stmt(stmt); end
@@ -79,20 +80,20 @@ module Layo
     def eval_condition_stmt(stmt)
       if cast(@vtable['IT'], :troof)
         # if block
-        eval_block(stmt.block)
+        eval_block(stmt.then)
       else
         # else if blocks
         condition_met = false
-        stmt.elseif_list.each do |elseif|
-          condition = eval_expr(elseif.expr)
+        stmt.elseif.each do |elseif|
+          condition = eval_expr(elseif[:condition])
           if condition_met = cast(condition, :troof)
-            eval_block(elseif.block)
+            eval_block(elseif[:block])
             break
           end
         end
-        unless condition_met || stmt.else_block.nil?
+        unless condition_met || stmt.else.nil?
           # else block
-          eval_block(stmt.else_block)
+          eval_block(stmt.else)
         end
       end
     end
@@ -102,29 +103,28 @@ module Layo
     end
 
     def eval_loop_stmt(stmt)
-      update, guard = stmt.loop_update, stmt.loop_guard
-      unless update.nil?
-        if @vtable.has_key?(update.identifier[:data])
-          var_backup = @vtable[update.identifier[:data]]
+      unless stmt.op.nil?
+        if @vtable.has_key?(stmt.counter)
+          var_backup = @vtable[stmt.counter]
         end
-        @vtable[update.identifier[:data]] = {:type => :numbr, :value => 0}
-        update_op = if update.update_op[:type] == :uppin
-          lambda { @vtable[update.identifier[:data]][:value] += 1 }
-        elsif update.update_op[:type] == :nerfin
-          lambda { @vtable[update.identifier[:data]][:value] -= 1 }
+        @vtable[stmt.counter] = {:type => :numbr, :value => 0}
+        update_op = if stmt.op == :uppin
+          lambda { @vtable[stmt.counter][:value] += 1 }
+        elsif stmt.op == :nerfin
+          lambda { @vtable[stmt.counter][:value] -= 1 }
         else
           lambda {
-            @vtable[update.identifier[:data]] = call_func(update.update_op[:data], [@vtable[update.identifier[:data]]])
+            @vtable[stmt.counter] = call_func(stmt.op, [@vtable[stmt.counter]])
           }
         end
       end
 
       catch :break do
         while true
-          unless guard.nil?
-            condition_met = cast(eval_expr(guard.condition), :troof)
-            if (guard.condition_type == :wile && !condition_met) or
-               (guard.condition_type == :til && condition_met)
+          unless stmt.guard.nil?
+            condition_met = cast(eval_expr(stmt.guard[:expression]), :troof)
+            if (stmt.guard[:type] == :wile && !condition_met) or
+               (stmt.guard[:type] == :til && condition_met)
                throw :break
             end
           end
@@ -132,15 +132,15 @@ module Layo
           update_op.call if update_op
         end
       end
-      unless update.nil? || var_backup.nil?
-        @vtable[update.identifier[:data]] = var_backup
+      unless stmt.op.nil? || var_backup.nil?
+        @vtable[stmt.counter] = var_backup
       end
     end
 
     def eval_print_stmt(stmt)
       text = ''
       # todo rewrite using map or similar
-      stmt.expr_list.each do |expr|
+      stmt.expressions.each do |expr|
         text << cast(eval_expr(expr), :yarn)
       end
       if stmt.suppress
@@ -151,15 +151,15 @@ module Layo
     end
 
     def eval_return_stmt(stmt)
-      throw :break, eval_expr(stmt.expr)
+      throw :break, eval_expr(stmt.expression)
     end
 
     def eval_switch_stmt(stmt)
       case_found = false
       it = @vtable['IT']
-      stmt.case_list.each do |kase|
+      stmt.cases.each do |kase|
         unless case_found
-          expr = eval_expr(kase.expr)
+          expr = eval_expr(kase[:expression])
           val = cast(expr, it[:type])
           if it[:value] == val
             case_found = true
@@ -168,15 +168,15 @@ module Layo
         if case_found
           breaked = true
           catch :break do
-            eval_block(kase.block)
+            eval_block(kase[:block])
             breaked = false
           end
           break if breaked
         end
       end
-      unless case_found or stmt.default_case.nil?
+      unless case_found || stmt.default.nil?
         catch :break do
-          eval_block(stmt.default_case)
+          eval_block(stmt.default)
         end
       end
     end
@@ -258,7 +258,7 @@ module Layo
 
     def eval_cast_expr(expr)
       casted_expr = eval_expr(expr.expr)
-      return {:type => expr.type.data, :value => cast(casted_expr, expr.type.data, false)}
+      return {:type => expr.type, :value => cast(casted_expr, expr.type, false)}
     end
 
     def eval_constant_expr(expr)
