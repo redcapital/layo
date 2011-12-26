@@ -1,3 +1,5 @@
+require 'ostruct'
+
 module Layo::Ast
-  class Node; end
+  class Node < OpenStruct; end
 end

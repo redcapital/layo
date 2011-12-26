@@ -11,7 +11,7 @@ module Layo
       @parser.parse_function_declarations
       main = @parser.parse
       main.block.each do |statement|
-        if statement.is_a? Layo::Ast::FuncDefStmt
+        if statement.type == 'function'
           @functions[statement.name] = {
             args: @parser.functions[statement.name],
             block: statement.block
@@ -41,8 +41,7 @@ module Layo
     end
 
     def eval_stmt(stmt)
-      klass = stmt.class.name
-      method = "eval_#{klass[klass.rindex('::') + 2..klass.length - 5].downcase}_stmt"
+      method = "eval_#{stmt.type}_stmt"
       send method.to_sym, stmt
     end
 
@@ -57,8 +56,8 @@ module Layo
 
     def eval_cast_stmt(stmt)
       var = @vtable[stmt.identifier]
-      var[:value] = cast(var, stmt.type.data, false)
-      var[:type] = stmt.type.data
+      var[:value] = cast(var, stmt.cast_to.data, false)
+      var[:type] = stmt.cast_to.data
     end
 
     def eval_declaration_stmt(stmt)
@@ -71,13 +70,13 @@ module Layo
       end
     end
 
-    def eval_expr_stmt(stmt)
+    def eval_expression_stmt(stmt)
       @vtable['IT'] = eval_expr(stmt.expr)
     end
 
-    def eval_funcdef_stmt(stmt); end
+    def eval_function_stmt(stmt); end
 
-    def eval_ifthenelse_stmt(stmt)
+    def eval_condition_stmt(stmt)
       if cast(@vtable['IT'], :troof)
         # if block
         eval_block(stmt.block)

@@ -116,7 +116,7 @@ module Layo
       expect_token(:is_now_a)
       type = parse_type
       expect_token(:newline)
-      Ast::CastStmt.new(identifier, type)
+      Ast::Statement.new('cast', {identifier: identifier, cast_to: type})
     end
 
     def parse_print_statement
@@ -131,7 +131,7 @@ module Layo
         expect_token(:newline)
         suppress = true
       end
-      Ast::PrintStmt.new(expr_list, suppress)
+      Ast::Statement.new('print', {expr_list: expr_list, suppress: suppress})
     end
 
     # InputStmt ::= TT_GIMMEH IdentifierNode TT_NEWLINE
@@ -139,7 +139,7 @@ module Layo
       expect_token(:gimmeh)
       identifier = expect_token(:identifier)[:data]
       expect_token(:newline)
-      Ast::InputStmt.new(identifier)
+      Ast::Statement.new('input', {identifier: identifier})
     end
 
     # AssignmentStmt ::= Identifier TT_R Expr TT_NEWLINE
@@ -148,7 +148,7 @@ module Layo
       expect_token(:r)
       expr = parse_expr
       expect_token(:newline)
-      Ast::AssignmentStmt.new(identifier, expr)
+      Ast::Statement.new('assignment', {identifier: identifier, expr: expr})
     end
 
     # DeclarationStmt ::= :i_has_a IdentifierNode [:itz ExprNode] TT_NEWLINE
@@ -161,7 +161,7 @@ module Layo
       end
       @tokenizer.unpeek
       expect_token(:newline)
-      Ast::DeclarationStmt.new(identifier, initialization)
+      Ast::Statement.new('declaration', {identifier: identifier, initialization: initialization})
     end
 
     # IfThenElseStmt ::= TT_ORLY TT_NEWLINE TT_YARLY TT_NEWLINE BlockNode ElseIf * [ :no_wai :newline BlockNode ] TT_OIC TT_NEWLINE
@@ -184,7 +184,8 @@ module Layo
       @tokenizer.unpeek
       expect_token(:oic)
       expect_token(:newline)
-      Ast::IfThenElseStmt.new(block, elseif_list, else_block)
+      Ast::Statement.new('condition', {block: block, elseif_list: elseif_list,
+                         else_block: else_block})
     end
 
     def elseif_next?
@@ -219,7 +220,7 @@ module Layo
       @tokenizer.unpeek
       expect_token(:oic)
       expect_token(:newline)
-      Ast::SwitchStmt.new(case_list, default_case)
+      Ast::Statement.new('switch', {case_list: case_list, default_case: default_case})
     end
 
     def case_next?
@@ -241,7 +242,7 @@ module Layo
     def parse_break_statement
       expect_token(:gtfo)
       expect_token(:newline)
-      Ast::BreakStmt.new
+      Ast::Statement.new('break')
     end
 
     # ReturnStmt ::= TT_FOUNDYR ExprNode TT_NEWLINE
@@ -249,7 +250,7 @@ module Layo
       expect_token(:found_yr)
       expr = parse_expr
       expect_token(:newline)
-      Ast::ReturnStmt.new(expr)
+      Ast::Statement.new('return', {expr: expr})
     end
 
     # LoopStmt ::= TT_IMINYR IdentifierNode [ LoopUpdate ] [ LoopGuard ] Block TT_NEWLINE TT_IMOUTTAYR IdentifierNode TT_NEWLINE
@@ -268,7 +269,7 @@ module Layo
           "Loop label's don't match: '#{label_begin}' and '#{label_end}'"
         )
       end
-      Ast::LoopStmt.new(label_begin, loop_update, loop_guard, block)
+      Ast::Statement.new('loop', {label: label_begin, loop_update: loop_update, loop_guard: loop_guard, block: block})
     end
 
     def loop_update_next?
@@ -323,14 +324,14 @@ module Layo
       block = parse_block
       expect_token(:if_u_say_so)
       expect_token(:newline)
-      Ast::FuncDefStmt.new(name, args, block)
+      Ast::Statement.new('function', {name: name, args: args, block: block})
     end
 
     # ExprStmt ::= ExprNode TT_NEWLINE
     def parse_expression_statement
       expr = parse_expr
       expect_token(:newline)
-      Ast::ExprStmt.new(expr)
+      Ast::Statement.new('expression', {expr: expr})
     end
 
     # Expr ::= CastExpr | ConstantExpr | IdentifierExpr | UnaryOpExpr | BinaryOpExpr | NaryOpExpr
