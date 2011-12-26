@@ -19,7 +19,8 @@ module Layo
       index = @peek_index
       result = true
       types.each do |type|
-        unless peek[:type] == type
+        allowed = type.is_a?(Array) ? type : [type]
+        unless allowed.include?(peek[:type])
           result = false
           break
         end

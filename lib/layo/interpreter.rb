@@ -214,30 +214,28 @@ module Layo
     end
 
     def eval_expr(expr)
-      klass = expr.class.name
-      method = "eval_#{klass[klass.rindex('::') + 2..klass.length - 5].downcase}_expr"
-      send method, expr
+      send("eval_#{expr.type}_expr", expr)
     end
 
-    def eval_binaryop_expr(expr)
-      l = eval_expr(expr.expr1)
-      r = eval_expr(expr.expr2)
+    def eval_binary_expr(expr)
+      l = eval_expr(expr.left)
+      r = eval_expr(expr.right)
       methods = {
         :sum_of => :+, :diff_of => :-, :produkt_of => :*, :quoshunt_of => :/,
         :mod_of => :modulo, :both_of => :&, :either_of => :|, :won_of => :^,
         :both_saem => :==, :diffrint => :!=
       }
-      case expr.type
+      case expr.operator
         when :sum_of, :diff_of, :produkt_of, :quoshunt_of, :mod_of, :biggr_of, :smallr_of
           # todo need to try casting string to numbar first and check type after that
           type = (l[:type] == :numbar or r[:type] == :numbar) ? :numbar : :numbr
           l, r = cast(l, type), cast(r, type)
-          if expr.type == :biggr_of
+          if expr.operator == :biggr_of
             value = [l, r].max
-          elsif expr.type == :smallr_of
+          elsif expr.operator == :smallr_of
             value = [l, r].min
           else
-            value = l.send(methods[expr.type], r)
+            value = l.send(methods[expr.operator], r)
           end
         when :both_saem, :diffrint
           type = :troof
@@ -247,33 +245,33 @@ module Layo
           elsif l[:type] != r[:type]
             raise RuntimeError, 'Operands must have same type'
           end
-          value = l.send(methods[expr.type], r)
+          value = l.send(methods[expr.operator], r)
         else
           type = :troof
           l, r = cast(l, :troof), cast(r, :troof)
-          value = l.send(methods[expr.type], r)
+          value = l.send(methods[expr.operator], r)
       end
       return {:type => type, :value => value}
     end
 
     def eval_cast_expr(expr)
-      casted_expr = eval_expr(expr.expr)
-      return {:type => expr.type, :value => cast(casted_expr, expr.type, false)}
+      casted_expr = eval_expr(expr.being_casted)
+      return {:type => expr.to, :value => cast(casted_expr, expr.to, false)}
     end
 
     def eval_constant_expr(expr)
       # todo use consistent type names everywhere (i.e. only troof instead of boolean)
       mapping = {:boolean => :troof, :string => :yarn, :integer => :numbr, :float => :numbar}
       # todo string interpolation
-      return {:type => mapping[expr.type], :value => expr.value}
+      return {:type => mapping[expr.vtype], :value => expr.value}
     end
 
-    def eval_funccall_expr(expr)
-      arguments = []
-      expr.expr_list.each do |arg|
-        arguments << eval_expr(arg)
+    def eval_function_expr(expr)
+      parameters = []
+      expr.parameters.each do |param|
+        parameters << eval_expr(param)
       end
-      call_func(expr.name, arguments)
+      call_func(expr.name, parameters)
     end
 
     def call_func(name, arguments)
@@ -293,11 +291,11 @@ module Layo
       return retval
     end
 
-    def eval_naryop_expr(expr)
-      case expr.type
+    def eval_nary_expr(expr)
+      case expr.operator
         when :all_of
           type, value = :troof, true
-          expr.expr_list.each do |operand|
+          expr.expressions.each do |operand|
             unless cast(eval_expr(operand), :troof)
               value = false
               break
@@ -305,7 +303,7 @@ module Layo
           end
         when :any_of
           type, value = :troof, false
-          expr.expr_list.each do |operand|
+          expr.expressions.each do |operand|
             if cast(eval_expr(operand), :troof)
               value = true
               break
@@ -313,16 +311,16 @@ module Layo
           end
         when :smoosh
           type, value = :yarn, ''
-          expr.expr_list.each do |operand|
+          expr.expressions.each do |operand|
             value << cast(eval_expr(operand), :yarn)
           end
       end
       return {:type => type, :value => value}
     end
 
-    def eval_unaryop_expr(expr)
+    def eval_unary_expr(expr)
       # the only unary op in LOLCODE is NOT
-      return {:type => :troof, :value => !cast(eval_expr(expr.expr), :troof)}
+      return {:type => :troof, :value => !cast(eval_expr(expr.expression), :troof)}
     end
 
     def eval_variable_expr(expr)

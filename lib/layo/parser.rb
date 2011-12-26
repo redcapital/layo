@@ -1,7 +1,5 @@
 module Layo
   class Parser
-    EXPRESSIONS = ['cast', 'constant', 'identifier', 'unary_op',
-        'binary_op', 'nary_op']
     attr_accessor :tokenizer
     attr_reader :functions
 
@@ -70,8 +68,6 @@ module Layo
       token = @tokenizer.next
       #raise UnexpectedTokenError, token unless types.include?(token[:type])
       unless types.include?(token[:type])
-        puts "expected: #{types}"
-        puts "got: #{token}"
         raise UnexpectedTokenError, token
       end
       token
@@ -107,7 +103,7 @@ module Layo
       return 'print' if @tokenizer.try(:visible)
       return 'return' if @tokenizer.try(:found_yr)
       return 'switch' if @tokenizer.try(:wtf?)
-      return 'expression' if !next_expr_name.nil?
+      return 'expression' if !next_expr.nil?
       nil
     end
 
@@ -122,7 +118,7 @@ module Layo
     def parse_print_statement
       expect_token(:visible)
       attrs = { expressions: [parse_expr] }
-      until (name = next_expr_name).nil?
+      until (name = next_expr).nil?
         attrs[:expressions] << parse_expr(name)
       end
       token = expect_token(:exclamation, :newline)
@@ -298,62 +294,36 @@ module Layo
 
     # Expr ::= CastExpr | ConstantExpr | IdentifierExpr | UnaryOpExpr | BinaryOpExpr | NaryOpExpr
     def parse_expr(name = nil)
-      name = next_expr_name if name.nil?
+      name = next_expr if name.nil?
       raise ParserError, 'Expected expression to parse but not found' if name.nil?
-      return send("parse_#{name}_expr".to_sym)
+      send("parse_#{name}_expr".to_sym)
     end
 
     def parse_cast_expr
       expect_token(:maek)
-      expr = parse_expr
+      attrs = { being_casted: parse_expr }
       expect_token(:a)
-      type = expect_token(:noob, :troof, :numbr, :numbar, :yarn)[:type]
-      Ast::CastExpr.new(expr, type)
+      attrs[:to] = expect_token(:noob, :troof, :numbr, :numbar, :yarn)[:type]
+      Ast::Expression.new('cast', attrs)
     end
 
-    def next_expr_name(restore_peek = true)
-      EXPRESSIONS.each do |name|
-        return name if send("#{name}_expr_next?".to_sym)
-      end
+    def next_expr
+      return 'binary' if @tokenizer.try([
+        :sum_of, :diff_of, :produkt_of, :quoshunt_of, :mod_of, :biggr_of,
+        :smallr_of, :both_of, :either_of, :won_of, :both_saem, :diffrint
+      ])
+      return 'cast' if @tokenizer.try(:maek)
+      return 'constant' if @tokenizer.try([:boolean, :integer, :float, :string])
+      return 'identifier' if @tokenizer.try(:identifier)
+      return 'nary' if @tokenizer.try([:all_of, :any_of, :smoosh])
+      return 'unary' if @tokenizer.try(:not)
       nil
-    end
-
-    def cast_expr_next?
-      @tokenizer.try(:maek)
-    end
-
-    def constant_expr_next?
-      result = [:boolean, :integer, :float, :string].include?(@tokenizer.peek[:type])
-      @tokenizer.unpeek
-      result
-    end
-
-    def identifier_expr_next?
-      @tokenizer.try(:identifier)
-    end
-
-    def unary_op_expr_next?
-      @tokenizer.try(:not)
-    end
-
-    def binary_op_expr_next?
-      result = [:sum_of, :diff_of, :produkt_of, :quoshunt_of, :mod_of,
-        :biggr_of, :smallr_of, :both_of, :either_of, :won_of, :both_saem,
-        :diffrint].include?(@tokenizer.peek[:type])
-      @tokenizer.unpeek
-      result
-    end
-
-    def nary_op_expr_next?
-      result = [:all_of, :any_of, :smoosh].include?(@tokenizer.peek[:type])
-      @tokenizer.unpeek
-      result
     end
 
     # ConstantExpr ::= Boolean | Integer | Float | String
     def parse_constant_expr
       token = expect_token(:boolean, :integer, :float, :string)
-      Ast::ConstantExpr.new(token[:type], token[:data])
+      Ast::Expression.new('constant', { vtype: token[:type], value: token[:data] })
     end
 
     # IdentifierExpr ::= :identifier
@@ -362,54 +332,57 @@ module Layo
       begin
         function = self.functions.fetch(name)
         # Function call
-        expr_list = []
+        attrs = { name: name, parameters: [] }
         function.size.times do |c|
-          expr_name = next_expr_name
+          expr_name = next_expr
           if expr_name.nil?
             msg = "Function '%s' expects %d arguments, %d passed" % [name, function.size, c]
             raise ParserError, msg
           end
-          expr_list << parse_expr(expr_name)
+          attrs[:parameters] << parse_expr(expr_name)
         end
-        return Ast::FuncCallExpr.new(name, expr_list)
+        return Ast::Expression.new('function', attrs)
       rescue KeyError
         # Variable name
-        return Ast::VariableExpr.new(name)
+        return Ast::Expression.new('variable', name: name)
       end
     end
 
     # UnaryOpExpr ::= :not Expr
-    def parse_unary_op_expr
+    def parse_unary_expr
       expect_token(:not)
-      Ast::UnaryOpExpr.new(parse_expr)
+      Ast::Expression.new('unary', { expression: parse_expr } )
     end
 
     # BinaryOpExpr ::= TT_SUMOF | TT_DIFFOF | TT_PRODUKTOF | TT_QUOSHUNTOF | TT_MODOF | BIGGROF | SMALLROF | TT_BOTHOF | TT_EITHEROF | TT_WONOF ExprNode [:an] ExprNode
-    def parse_binary_op_expr
-      type = expect_token(
-        :sum_of, :diff_of, :produkt_of, :quoshunt_of, :mod_of, :biggr_of,
-        :smallr_of, :both_of, :either_of, :won_of, :both_saem, :diffrint
-      )[:type]
-      expr1 = parse_expr
-      token = @tokenizer.peek
-      @tokenizer.next if token[:type] == :an
+    def parse_binary_expr
+      attrs = {
+        operator: expect_token(
+          :sum_of, :diff_of, :produkt_of, :quoshunt_of, :mod_of, :biggr_of,
+          :smallr_of, :both_of, :either_of, :won_of, :both_saem, :diffrint
+        )[:type]
+      }
+      attrs[:left] = parse_expr
+      @tokenizer.next if @tokenizer.peek[:type] == :an
       @tokenizer.unpeek
-      Ast::BinaryOpExpr.new(type, expr1, parse_expr)
+      attrs[:right] = parse_expr
+      Ast::Expression.new('binary', attrs)
     end
 
     # NaryOpExpr ::= :all_of | :any_of | :smoosh Expr Expr + :mkay | :newline
-    def parse_nary_op_expr
-      type = expect_token(:all_of, :any_of, :smoosh)[:type]
-      expr_list = [parse_expr]
+    def parse_nary_expr
+      attrs = { operator: expect_token(:all_of, :any_of, :smoosh)[:type] }
+      attrs[:expressions] = [parse_expr]
       while true
         @tokenizer.next if @tokenizer.peek[:type] == :an
         @tokenizer.unpeek
-        name = next_expr_name
-        if name.nil? then break else expr_list << parse_expr(name) end
+        name = next_expr
+        if name.nil? then break else attrs[:expressions] << parse_expr(name) end
       end
       # Do not consume newline token
-      if @tokenizer.peek[:type] == :mkay then @tokenizer.next else @tokenizer.unpeek end
-      Ast::NaryOpExpr.new(type, expr_list)
+      @tokenizer.next if @tokenizer.peek[:type] == :mkay
+      @tokenizer.unpeek
+      Ast::Expression.new('nary', attrs)
     end
   end
 end
