@@ -7,17 +7,18 @@ module Layo
     end
 
     def interpret
+      # We should gather all function definitions along with their bodies
+      # beforehand so we could call them wherever a call appears
       @functions = {}
-      main = @parser.parse
-      main.block.each do |statement|
+      program = @parser.parse
+      program.block.each do |statement|
         if statement.type == 'function'
           @functions[statement.name] = {
-            args: @parser.functions[statement.name],
-            block: statement.block
+            args: statement.args, block: statement.block
           }
         end
       end
-      eval_main(main)
+      eval_program(program)
     end
 
     def create_variable_table
@@ -28,9 +29,9 @@ module Layo
       return table
     end
 
-    def eval_main(main)
+    def eval_program(program)
       @vtable = create_variable_table
-      eval_block(main.block)
+      eval_block(program.block)
     end
 
     def eval_block(block)
@@ -45,7 +46,7 @@ module Layo
     end
 
     def eval_assignment_stmt(stmt)
-      # We should access by variable name first to ensure it's defined
+      # We should access by variable name first to ensure that it is defined
       @vtable[stmt.identifier]
       @vtable[stmt.identifier] = eval_expr(stmt.expression)
     end
