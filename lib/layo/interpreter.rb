@@ -36,13 +36,8 @@ module Layo
 
     def eval_block(block)
       block.each do |stmt|
-        eval_stmt(stmt)
+        send("eval_#{stmt.type}_stmt", stmt)
       end
-    end
-
-    def eval_stmt(stmt)
-      method = "eval_#{stmt.type}_stmt"
-      send method.to_sym, stmt
     end
 
     def eval_assignment_stmt(stmt)
