@@ -4,13 +4,17 @@ module Layo
     attr_reader :functions
 
     def initialize(tokenizer)
-      @tokenizer = tokenizer
-      reset
+      self.tokenizer = tokenizer
     end
 
     def reset
       @functions = {}
       @tokenizer.reset
+    end
+
+    def tokenizer=(tokenizer)
+      @tokenizer = tokenizer
+      reset
     end
 
     # Function declarations should be parsed first in order to properly
@@ -51,6 +55,7 @@ module Layo
     end
 
     def parse_program
+      parse_function_declarations
       skip_newlines
       expect_token(:hai)
       version = expect_token(:float)[:data]

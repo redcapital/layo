@@ -8,7 +8,6 @@ module Layo
 
     def interpret
       @functions = {}
-      @parser.parse_function_declarations
       main = @parser.parse
       main.block.each do |statement|
         if statement.type == 'function'
