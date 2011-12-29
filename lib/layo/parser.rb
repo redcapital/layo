@@ -110,8 +110,11 @@ module Layo
     end
 
     def parse_statement(name)
+      token = @tokenizer.peek
+      @tokenizer.unpeek
       statement = send("parse_#{name}_statement".to_sym)
       expect_token(:newline)
+      statement.line = token[:line]
       statement
     end
 
@@ -280,7 +283,6 @@ module Layo
     end
 
     # Returns internal name of the next expression
-    # Modifies peek index of the tokenizer if result is non-nil
     def next_expression
       return 'binary' if @tokenizer.try([
         :sum_of, :diff_of, :produkt_of, :quoshunt_of, :mod_of, :biggr_of,

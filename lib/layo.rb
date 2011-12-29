@@ -1,4 +1,5 @@
 require_relative 'layo/syntax_error'
+require_relative 'layo/runtime_error'
 require_relative 'layo/unknown_token_error'
 require_relative 'layo/unexpected_token_error'
 require_relative 'layo/parser_error'

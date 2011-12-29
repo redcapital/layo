@@ -35,8 +35,15 @@ module Layo
     end
 
     def eval_block(block)
-      block.each do |stmt|
-        send("eval_#{stmt.type}_stmt", stmt)
+      begin
+        line = nil
+        block.each do |stmt|
+          line = stmt.line
+          send("eval_#{stmt.type}_stmt", stmt)
+        end
+      rescue RuntimeError => e
+        e.line = line
+        raise e
       end
     end
 
