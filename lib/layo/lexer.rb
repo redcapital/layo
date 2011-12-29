@@ -51,7 +51,7 @@ module Layo
 
         # Skip triple dot characters (join lines)
         if @line[@pos, 4] == "...\n" or @line[@pos, 2] == "…\n"
-          line_no, pos = @line_no, @pos
+          line_no, pos = @line_no, @pos + 1
           @line, @pos = next_line, 0
           if @line.nil? or @line.strip.empty?
             raise SyntaxError.new(line_no, pos, 'Line continuation may not be followed by an empty line')
@@ -65,7 +65,7 @@ module Layo
         end
         # and multiline ones
         if @last_lexeme[0] == "\n" && @line[@pos, 4] == 'OBTW'
-          tldr_found, line_no, pos = false, @line_no, @pos
+          tldr_found, line_no, pos = false, @line_no, @pos + 1
           while true
             @line = next_line
             break if @line.nil?
@@ -101,7 +101,7 @@ module Layo
           end
           # String must be followed by an allowed lexeme delimiter
           if string.nil? or !lexeme_delimiter?(@pos + string.length)
-            raise SyntaxError.new(@line_no, @pos, 'Unterminated string constant')
+            raise SyntaxError.new(@line_no, @pos + 1, 'Unterminated string constant')
           end
           lexeme = [string, @line_no, @pos + 1]
           @pos = @pos + string.length
