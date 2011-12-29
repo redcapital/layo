@@ -23,9 +23,9 @@ module Layo
 
     def create_variable_table
       table = Hash.new do |hash, key|
-        raise RuntimeError, "Variable #{key} is not defined"
+        raise RuntimeError, "Variable '#{key}' is not declared"
       end
-      table['IT'] = {:type => :noob, :value => :nil}
+      table['IT'] = { type: :noob, value: nil}
       return table
     end
 
@@ -65,7 +65,7 @@ module Layo
 
     def eval_declaration_stmt(stmt)
       if @vtable.has_key?(stmt.identifier)
-        raise RuntimeError, "Variable #{stmt.identifier} is already declared"
+        raise RuntimeError, "Variable '#{stmt.identifier}' is already declared"
       end
       @vtable[stmt.identifier] = {:type => :noob, :value => nil}
       unless stmt.initialization.nil?
@@ -189,7 +189,7 @@ module Layo
       case var[:type]
         when :noob
           if implicit && to != :troof
-            raise RuntimeError, "noob cannot be implicitly cast into #{to.to_s.upcase}"
+            raise RuntimeError, "NOOB cannot be implicitly cast into #{to.to_s.upcase}"
           end
           return false if to == :troof
           return 0 if to == :numbr

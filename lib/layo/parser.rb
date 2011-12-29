@@ -297,8 +297,12 @@ module Layo
     end
 
     def parse_expression(name = nil)
-      name = next_expression if name.nil?
-      raise ParserError, 'Expected expression to parse but not found' if name.nil?
+      token = @tokenizer.peek
+      @tokenizer.unpeek
+      name = next_expression unless name
+      unless name
+        raise SyntaxError.new(token[:line], token[:pos], 'Expected expression')
+      end
       send("parse_#{name}_expression".to_sym)
     end
 
@@ -339,12 +343,7 @@ module Layo
         # Function call
         attrs = { name: name, parameters: [] }
         function.size.times do |c|
-          expr_name = next_expression
-          if expr_name.nil?
-            msg = "Function '%s' expects %d arguments, %d passed" % [name, function.size, c]
-            raise ParserError, msg
-          end
-          attrs[:parameters] << parse_expression(expr_name)
+          attrs[:parameters] << parse_expression
         end
         return Ast::Expression.new('function', attrs)
       rescue KeyError
