@@ -161,9 +161,8 @@ module Layo
       it = @vtable['IT']
       stmt.cases.each do |kase|
         unless case_found
-          expr = eval_expr(kase[:expression])
-          val = cast(expr, it[:type])
-          if it[:value] == val
+          literal = eval_expr(kase[:expression])
+          if it == literal
             case_found = true
           end
         end
