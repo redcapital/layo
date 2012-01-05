@@ -183,6 +183,8 @@ module Layo
       end
     end
 
+    # Casts given variable 'var' into type 'to'
+    # Returns only value part of the variable, type will be 'to' anyway
     def cast(var, to, implicit = true)
       return var[:value] if var[:type] == to
       return nil if to == :noob
@@ -206,7 +208,8 @@ module Layo
         when :numbar
           return (var[:value].zero? ? false : true) if to == :troof
           return var[:value].to_int if to == :numbr
-          return var[:value].to_s
+          # Truncate to 2 digits after decimal point
+          return ((var[:value] * 100).floor / 100.0).to_s
         else
           return !var[:value].empty? if to == :troof
           # todo check if string is a number using regex
