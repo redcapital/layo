@@ -35,7 +35,12 @@ describe Interpreter do
       end
 
       # Execute the program
-      @interpreter.interpret
+      begin
+        @interpreter.interpret
+      rescue RuntimeError, SyntaxError => e
+        puts "Error interpreting #{source_filename}"
+        puts e.message
+      end
 
       # Assertions
       unless output.nil?
