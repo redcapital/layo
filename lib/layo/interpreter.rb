@@ -54,7 +54,7 @@ module Layo
     end
 
     def eval_break_stmt(stmt)
-      throw :break, {:type => :noob, :value => nil}
+      throw :break
     end
 
     def eval_cast_stmt(stmt)
@@ -153,7 +153,7 @@ module Layo
     end
 
     def eval_return_stmt(stmt)
-      throw :break, eval_expr(stmt.expression)
+      throw :return, eval_expr(stmt.expression)
     end
 
     def eval_switch_stmt(stmt)
@@ -283,12 +283,16 @@ module Layo
       function[:args].each_index do |index|
         @vtable[function[:args][index]] = arguments[index]
       end
-      returned = true
-      retval = catch :break do
-        eval_block(function[:block])
-        returned = false
+      retval = nil
+      retval = catch :return do
+        breaked = true
+        catch(:break) do
+          eval_block(function[:block])
+          breaked = false
+        end
+        retval = { type: :noob, value: nil } if breaked
       end
-      retval = @vtable['IT'] unless returned
+      retval = @vtable['IT'] if retval.nil?
       @vtable = old_table
       return retval
     end
