@@ -212,9 +212,12 @@ module Layo
           return ((var[:value] * 100).floor / 100.0).to_s
         else
           return !var[:value].empty? if to == :troof
-          # todo check if string is a number using regex
-          return var[:value].to_i if to == :numbr
-          return var[:value].to_f
+          if to == :numbr
+            return var[:value].to_i if var[:value].lol_integer?
+            raise RuntimeError, "'#{var[:value]}' is not a valid integer"
+          end
+          return var[:value].to_f if var[:value].lol_float?
+          raise RuntimeError, "'#{var[:value]}' is not a valid float"
       end
     end
 
@@ -232,8 +235,9 @@ module Layo
       }
       case expr.operator
         when :sum_of, :diff_of, :produkt_of, :quoshunt_of, :mod_of, :biggr_of, :smallr_of
-          # todo need to try casting string to numbar first and check type after that
-          type = (l[:type] == :numbar or r[:type] == :numbar) ? :numbar : :numbr
+          type = l[:type] == :numbar || r[:type] == :numbar ||
+            (l[:type] == :yarn && l[:value].lol_float?) ||
+            (r[:type] == :yarn && r[:value].lol_float?) ? :numbar : :numbr
           l, r = cast(l, type), cast(r, type)
           if expr.operator == :biggr_of
             value = [l, r].max
