@@ -1,3 +1,25 @@
+class String
+  def lol_integer?
+    self =~ /^-?\d+$/
+  end
+
+  def lol_string?
+    self[0] == '"'
+  end
+
+  def lol_float?
+    self =~ /^-?\d+\.\d+?$/
+  end
+
+  def lol_boolean?
+    self == 'WIN' || self == 'FAIL'
+  end
+
+  def lol_identifier?
+    self =~ /^[a-zA-Z]\w*$/
+  end
+end
+
 module Layo
   class Tokenizer
     include Peekable
@@ -65,37 +87,17 @@ module Layo
       best_match
     end
 
-    def is_string(lexeme)
-      lexeme[0] == '"'
-    end
-
-    def is_float(lexeme)
-      lexeme =~ /^-?\d+\.\d+$/
-    end
-
-    def is_integer(lexeme)
-      lexeme =~ /^-?\d+$/
-    end
-
-    def is_boolean(lexeme)
-      lexeme == 'WIN' or lexeme == 'FAIL'
-    end
-
-    def is_identifier(lexeme)
-      lexeme =~ /^[a-zA-Z]\w*$/
-    end
-
     def next_item
       lexeme, token = @lexer.next, nil
       if lexeme[0].nil?
         token = {:type => :eof}
-      elsif is_string(lexeme[0])
+      elsif lexeme[0].lol_string?
         token = {:type => :string, :data => lexeme[0][1..-2]}
-      elsif is_integer(lexeme[0])
+      elsif lexeme[0].lol_integer?
         token = {:type => :integer, :data => lexeme[0].to_i}
-      elsif is_float(lexeme[0])
+      elsif lexeme[0].lol_float?
         token = {:type => :float, :data => lexeme[0].to_f}
-      elsif is_boolean(lexeme[0])
+      elsif lexeme[0].lol_boolean?
         token = {:type => :boolean, :data => (lexeme[0] == 'WIN')}
       else
         # Try to match keyword
@@ -106,7 +108,7 @@ module Layo
           token_type.to_s.count('_').times { @lexer.next }
         else
           # Try to match identifier
-          if is_identifier(lexeme[0])
+          if lexeme[0].lol_identifier?
             token = {:type => :identifier, :data => lexeme[0]}
           end
         end
