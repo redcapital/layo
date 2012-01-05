@@ -1,5 +1,5 @@
 module Layo
-  class SyntaxError < RuntimeError
+  class SyntaxError < ::RuntimeError
     attr_accessor :line, :pos
 
     def initialize(line, pos, msg)
