@@ -157,6 +157,9 @@ module Layo
     end
 
     def eval_switch_stmt(stmt)
+      stmt.cases.combination(2) do |c|
+        raise RuntimeError, 'Literals must be unique' if c[0] == c[1]
+      end
       case_found = false
       it = @vtable['IT']
       stmt.cases.each do |kase|

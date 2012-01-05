@@ -6,5 +6,9 @@ module Layo::Ast
       @type = type
       super(args)
     end
+
+    def ==(other)
+      @type == other.type && super(other)
+    end
   end
 end
