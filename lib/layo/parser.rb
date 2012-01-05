@@ -263,7 +263,7 @@ module Layo
       expect_token(:newline)
       parse_case = lambda do
         expect_token(:omg)
-        expression = parse_expression
+        expression = parse_expression('constant')
         expect_token(:newline)
         { expression: expression, block: parse_block }
       end

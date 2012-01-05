@@ -73,7 +73,7 @@ ReturnStatement = "FOUND YR" , Expression ;
 SwitchStatement = "WTF?" , Newline , SwitchCase , { SwitchCase } ,
   [ "OMGWTF" , Newline , Block ] , (* default case *)
   "OIC" ;
-SwitchCase = "OMG" , Expression , Newline , Block ;
+SwitchCase = "OMG" , ConstantExpression , Newline , Block ;
 
 (* List of expressions *)
 Expression = BinaryExpression | CastExpression | ConstantExpression |
