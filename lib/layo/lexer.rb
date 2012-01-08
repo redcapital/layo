@@ -96,14 +96,14 @@ module Layo
           if @line[@pos + 1] == '"'
             string = '""'
           else
-            m = @line.match(/[^:]"/, @pos + 1)
+            m = @line.match(/([^:](?:::)*)"/, @pos + 1)
             string = @line[@pos..m.end(0) - 1] unless m.nil?
           end
           # String must be followed by an allowed lexeme delimiter
           if string.nil? or !lexeme_delimiter?(@pos + string.length)
             raise SyntaxError.new(@line_no, @pos + 1, 'Unterminated string constant')
           end
-          lexeme = [string, @line_no, @pos + 1]
+          lexeme = [%Q["#{escape_string(string[1..-2])}"], @line_no, @pos + 1]
           @pos = @pos + string.length
         else
           # Grab as much characters as we can until meeting lexeme delimiter
@@ -136,6 +136,27 @@ module Layo
         @input.ungetc(ch) unless ch == "\n" or ch.nil?
       end
       line.chomp << "\n"
+    end
+
+    # Performs substitution of escape characters in string
+    def escape_string(str)
+      replacement = {
+        ':)' => "\n", ':>' => "\t", ':o' => "\a", ':"' => '"', '::' => ':'
+      }
+      str
+        .gsub(/:[\)>o":]/, replacement)
+        .gsub(/:\(0x([0-9a-fA-F]+)\)/) do |match|
+          $1.to_i(16).chr(Encoding::UTF_8)
+        end
+        .gsub(/:\[(.+?)\]/) do |match|
+          code = Unicode::DATA[$1]
+          if code
+            code.chr(Encoding::UTF_8)
+          else
+            $stderr.puts("Unknown Unicode normative name: #{$1}")
+            match
+          end
+        end
     end
   end
 end
