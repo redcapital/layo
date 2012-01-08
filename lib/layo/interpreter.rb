@@ -273,8 +273,8 @@ module Layo
     def eval_constant_expr(expr)
       # todo use consistent type names everywhere (i.e. only troof instead of boolean)
       mapping = {:boolean => :troof, :string => :yarn, :integer => :numbr, :float => :numbar}
-      # todo string interpolation
-      return {:type => mapping[expr.vtype], :value => expr.value}
+      value = expr.vtype == :string ? interpolate_string(expr.value) : expr.value
+      return {:type => mapping[expr.vtype], :value => value}
     end
 
     def eval_function_expr(expr)
@@ -340,6 +340,11 @@ module Layo
 
     def eval_variable_expr(expr)
       return @vtable[expr.name]
+    end
+
+    # Interpolates values of variables in the string
+    def interpolate_string(str)
+      str.gsub(/:\{([a-zA-Z]\w*)\}/) { cast(@vtable[$1], :yarn, false) }
     end
   end
 end
