@@ -145,7 +145,7 @@ module Layo
       }
       str
         .gsub(/:[\)>o":]/, replacement)
-        .gsub(/:\(0x([0-9a-fA-F]+)\)/) do |match|
+        .gsub(/:\(([0-9a-fA-F]+)\)/) do |match|
           $1.to_i(16).chr(Encoding::UTF_8)
         end
         .gsub(/:\[(.+?)\]/) do |match|

@@ -162,7 +162,7 @@ TLDR, DEF")
     end
 
     it "should resolve :(<hex>) into corresponding Unicode code point" do
-      str = 'Kazakh symbol :(0x049b), pound sign :(0x0A3)'
+      str = 'Kazakh symbol :(049b), pound sign :(0A3)'
       result = @lexer.escape_string(str)
       result.must_equal 'Kazakh symbol қ, pound sign £'
     end
