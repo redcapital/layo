@@ -14,5 +14,11 @@ File.open(ARGV[0]) do |f|
   tokenizer = Layo::Tokenizer.new(lexer)
   parser = Layo::Parser.new(tokenizer)
   interpreter = Layo::Interpreter.new(parser)
-  interpreter.interpret
+  begin
+    interpreter.interpret
+  rescue Layo::SyntaxError => e
+    $stderr.puts "Syntax error: #{e}"
+  rescue Layo::RuntimeError => e
+    $stderr.puts "Runtime error: #{e}"
+  end
 end
