@@ -37,6 +37,9 @@ module Layo
       super
     end
 
+    # Checks that following n tokens have the same types as in given 'types'
+    # array. Each element of 'types' can be either a symbol or array of symbols
+    # This method does not modify peek index
     def try(*types)
       index = @peek_index
       result = true
@@ -52,7 +55,7 @@ module Layo
     end
 
     def init_token_table
-      @token_table = {:list => {}}
+      @token_table = { :list => {} }
       ['HAI', 'KTHXBYE', 'NOOB', 'TROOF', 'NUMBR', 'NUMBAR',
         'YARN', 'I HAS A', 'ITZ', 'R', 'SUM OF', 'DIFF OF', 'PRODUKT OF',
         'QUOSHUNT OF', 'MOD OF', 'BIGGR OF', 'SMALLR OF', 'BOTH OF', 'EITHER OF',
@@ -69,10 +72,10 @@ module Layo
           root[lexeme][:list] = {} unless root[lexeme].has_key?(:list)
           root = root[lexeme][:list]
         end
-        root[lexemes.last] = {:match => t.gsub(' ', '_').downcase.to_sym}
+        root[lexemes.last] = { match: t.gsub(' ', '_').downcase.to_sym }
       end
-      @token_table[:list]["\n"] = {:match => :newline}
-      @token_table[:list]['!'] = {:match => :exclamation}
+      @token_table[:list]["\n"] = { match: :newline }
+      @token_table[:list]['!'] = { match: :exclamation }
     end
 
     def match_longest(lexeme, root)
@@ -87,34 +90,35 @@ module Layo
       best_match
     end
 
+    # Tries to convert next lexeme in lexeme stream into token and return it
     def next_item
       lexeme, token = @lexer.next, nil
       if lexeme[0].nil?
-        token = {:type => :eof}
+        token = { type: :eof }
       elsif lexeme[0].lol_string?
-        token = {:type => :string, :data => lexeme[0][1..-2]}
+        token = { type: :string, data: lexeme[0][1..-2] }
       elsif lexeme[0].lol_integer?
-        token = {:type => :integer, :data => lexeme[0].to_i}
+        token = { type: :integer, data: lexeme[0].to_i }
       elsif lexeme[0].lol_float?
-        token = {:type => :float, :data => lexeme[0].to_f}
+        token = { type: :float, data: lexeme[0].to_f }
       elsif lexeme[0].lol_boolean?
-        token = {:type => :boolean, :data => (lexeme[0] == 'WIN')}
+        token = { type: :boolean, data: (lexeme[0] == 'WIN') }
       else
         # Try to match keyword
         token_type = match_longest(lexeme[0], @token_table)
         unless token_type.nil?
-          token = {:type => token_type}
+          token = { type: token_type }
           # Consume all peeked lexemes
           token_type.to_s.count('_').times { @lexer.next }
         else
           # Try to match identifier
           if lexeme[0].lol_identifier?
-            token = {:type => :identifier, :data => lexeme[0]}
+            token = { type: :identifier, data: lexeme[0] }
           end
         end
       end
       raise UnknownTokenError.new(lexeme) if token.nil?
-      token.merge(:line => lexeme[1], :pos => lexeme[2])
+      token.merge(line: lexeme[1], pos: lexeme[2])
     end
   end
 end

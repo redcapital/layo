@@ -26,7 +26,7 @@ module Layo
         raise RuntimeError, "Variable '#{key}' is not declared"
       end
       table['IT'] = { type: :noob, value: nil}
-      return table
+      table
     end
 
     def eval_program(program)
@@ -67,7 +67,7 @@ module Layo
       if @vtable.has_key?(stmt.identifier)
         raise RuntimeError, "Variable '#{stmt.identifier}' is already declared"
       end
-      @vtable[stmt.identifier] = {:type => :noob, :value => nil}
+      @vtable[stmt.identifier] = { type: :noob, value: nil }
       unless stmt.initialization.nil?
         @vtable[stmt.identifier] = eval_expr(stmt.initialization)
       end
@@ -101,15 +101,17 @@ module Layo
     end
 
     def eval_input_stmt(stmt)
-      @vtable[stmt.identifier] = {:type => :yarn, :value => @input.gets}
+      @vtable[stmt.identifier] = { type: :yarn, value: @input.gets }
     end
 
     def eval_loop_stmt(stmt)
       unless stmt.op.nil?
+        # Backup any local variable if its name is the same as the counter
+        # variable's name
         if @vtable.has_key?(stmt.counter)
           var_backup = @vtable[stmt.counter]
         end
-        @vtable[stmt.counter] = {:type => :numbr, :value => 0}
+        @vtable[stmt.counter] = { type: :numbr, value: 0 }
         update_op = if stmt.op == :uppin
           lambda { @vtable[stmt.counter][:value] += 1 }
         elsif stmt.op == :nerfin
@@ -134,6 +136,7 @@ module Layo
           update_op.call if update_op
         end
       end
+      # Restore backed up variable
       unless stmt.op.nil? || var_backup.nil?
         @vtable[stmt.counter] = var_backup
       end
@@ -262,19 +265,18 @@ module Layo
           l, r = cast(l, :troof), cast(r, :troof)
           value = l.send(methods[expr.operator], r)
       end
-      return {:type => type, :value => value}
+      { type: type, value: value }
     end
 
     def eval_cast_expr(expr)
       casted_expr = eval_expr(expr.being_casted)
-      return {:type => expr.to, :value => cast(casted_expr, expr.to, false)}
+      { type: expr.to, value: cast(casted_expr, expr.to, false) }
     end
 
     def eval_constant_expr(expr)
-      # todo use consistent type names everywhere (i.e. only troof instead of boolean)
-      mapping = {:boolean => :troof, :string => :yarn, :integer => :numbr, :float => :numbar}
+      mapping = { boolean: :troof, string: :yarn, integer: :numbr, float: :numbar }
       value = expr.vtype == :string ? interpolate_string(expr.value) : expr.value
-      return {:type => mapping[expr.vtype], :value => value}
+      { type: mapping[expr.vtype], value: value }
     end
 
     def eval_function_expr(expr)
@@ -287,6 +289,7 @@ module Layo
 
     def call_func(name, arguments)
       function = @functions[name]
+      # Replace variable table by 'clean' variable table inside functions
       old_table = @vtable
       @vtable = create_variable_table
       function[:args].each_index do |index|
@@ -303,7 +306,7 @@ module Layo
       end
       retval = @vtable['IT'] if retval.nil?
       @vtable = old_table
-      return retval
+      retval
     end
 
     def eval_nary_expr(expr)
@@ -330,16 +333,16 @@ module Layo
             value << cast(eval_expr(operand), :yarn)
           end
       end
-      return {:type => type, :value => value}
+      { type: type, value: value }
     end
 
     def eval_unary_expr(expr)
       # the only unary op in LOLCODE is NOT
-      return {:type => :troof, :value => !cast(eval_expr(expr.expression), :troof)}
+      { type: :troof, value: !cast(eval_expr(expr.expression), :troof) }
     end
 
     def eval_variable_expr(expr)
-      return @vtable[expr.name]
+      @vtable[expr.name]
     end
 
     # Interpolates values of variables in the string
