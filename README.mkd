@@ -2,14 +2,22 @@
 
 Layo is a LOLCODE interpreter written in Ruby. It tries to conform to the
 [LOLCODE 1.2 specification](http://lolcode.com/specs/1.2) and supports
-everything described there. Note that I purposely did not use any parser
-generators such as `Racc`.
+everything described there. I purposely did not use any parser generators
+such as `Racc` for this project.
 
-Current version of Layo is 1.0
+Latest version is 1.0.0
 
 # Usage
 
-Dowload sources, unzip somewhere and run from project's root:
+Through Rubygems:
+
+```
+gem install layo
+layo program.lol
+```
+
+If you don't want to install the gem, you can download sources, unzip somewhere
+ and run from project's root:
 
 `bin/layo program.lol`
 
@@ -90,8 +98,6 @@ NaryExpression = ( "ALL OF" | "ANY OF" | "SMOOSH" ) ,
 UnaryExpression = "NOT" , Expression ;
 ```
 
-# TODO
+# License
 
-* Conform to specification, there are some things left
-* Add string interpolation with unicode support
-* Package it as a Ruby gem
+See LICENSE
