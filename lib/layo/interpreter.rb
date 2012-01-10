@@ -31,19 +31,26 @@ module Layo
 
     def eval_program(program)
       @vtable = create_variable_table
-      eval_block(program.block)
+      begin
+        illegal = true
+        catch(:break) do
+          catch(:return) do
+            eval_block(program.block)
+            illegal = false
+          end
+          raise RuntimeError, "Illegal return statement" if illegal
+        end
+        raise RuntimeError, "Illegal break statement" if illegal
+      rescue RuntimeError => e
+        e.line = @stmt_line
+        raise e
+      end
     end
 
     def eval_block(block)
-      begin
-        line = nil
-        block.each do |stmt|
-          line = stmt.line
-          send("eval_#{stmt.type}_stmt", stmt)
-        end
-      rescue RuntimeError => e
-        e.line = line
-        raise e
+      block.each do |stmt|
+        @stmt_line = stmt.line
+        send("eval_#{stmt.type}_stmt", stmt)
       end
     end
 
