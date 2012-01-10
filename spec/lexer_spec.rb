@@ -114,14 +114,14 @@ TLDR, DEF")
       @lexer.next.must_equal ['"hello world"', 1, 1]
     end
 
-    it 'should treat :" as an escape character' do
-      @lexer.input = StringIO.new('"hello :" world"')
-      @lexer.next.must_equal ['"hello :" world"', 1, 1]
-    end
-
     it 'should handle empty string' do
       @lexer.input = StringIO.new('""')
       @lexer.next.must_equal ['""', 1, 1]
+    end
+
+    it "should handle escape characters" do
+      @lexer.input = StringIO.new('"Special :) :::" :> :o chars ::"')
+      @lexer.next[0].must_equal %["Special \n :" \t \a chars :"]
     end
 
     it 'should raise a syntax error if string is unterminated' do
@@ -151,6 +151,26 @@ TLDR, DEF")
       @lexer.next.must_equal ["\n", 3, 4]
       # Error, since "g" is not followed by any allowed delimiter
       lambda { @lexer.next }.must_raise Layo::SyntaxError
+    end
+  end
+
+  describe '#escape_string' do
+    it "should handle escape characters" do
+      str = 'Example :) usage :> of :" special :o chars ::'
+      result = @lexer.escape_string(str)
+      result.must_equal %[Example \n usage \t of " special \a chars :]
+    end
+
+    it "should resolve :(<hex>) into corresponding Unicode code point" do
+      str = 'Kazakh symbol :(049b), pound sign :(0A3)'
+      result = @lexer.escape_string(str)
+      result.must_equal 'Kazakh symbol қ, pound sign £'
+    end
+
+    it "should resolve :[<char name>] into corresponding Unicode normative name" do
+      str = ':[CYRILLIC SMALL LETTER KA WITH DESCENDER] and :[COMMERCIAL AT]'
+      result = @lexer.escape_string(str)
+      result.must_equal 'қ and @'
     end
   end
 end

@@ -1,13 +1,13 @@
 module Layo::Ast
   class Block < Node
-    attr_reader :stmt_list
+    attr_reader :statement_list
 
-    def initialize(stmt_list = [])
-      @stmt_list = stmt_list
+    def initialize(statement_list = [])
+      @statement_list = statement_list
     end
 
     def each
-      @stmt_list.each { |stmt| yield(stmt) }
+      @statement_list.each { |stmt| yield(stmt) }
     end
   end
 end

@@ -80,4 +80,16 @@ color, WTF?
     VISIBLE "FISH IS TRANSPARENT"
 OIC
 
+BTW switch expressions should match both the type and value of IT variable
+I HAS A str ITZ "5"
+str, WTF?
+  OMG 5
+    VISIBLE "str is 5"
+    GTFO
+  OMG 5.0
+    VISIBLE "str is 5.0"
+    GTFO
+  OMG "5"
+    VISIBLE "str is '5'"
+OIC
 KTHXBYE

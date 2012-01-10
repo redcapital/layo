@@ -1,5 +1,5 @@
 module Layo::Ast
-  class Main < Node
+  class Program < Node
     attr_reader :version, :block
 
     def initialize(version, block)

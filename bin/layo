@@ -10,9 +10,13 @@ if ARGV.empty?
 end
 raise "File #{ARGV[0]} does not exist" unless File.exists?(ARGV[0])
 File.open(ARGV[0]) do |f|
-  lexer = Layo::Lexer.new(f)
-  tokenizer = Layo::Tokenizer.new(lexer)
-  parser = Layo::Parser.new(tokenizer)
-  interpreter = Layo::Interpreter.new(parser)
-  interpreter.interpret
+  parser = Layo::Parser.new(Layo::Tokenizer.new(Layo::Lexer.new(f)))
+  interpreter = Layo::Interpreter.new
+  begin
+    interpreter.interpret(parser.parse)
+  rescue Layo::SyntaxError => e
+    $stderr.puts "Syntax error: #{e}"
+  rescue Layo::RuntimeError => e
+    $stderr.puts "Runtime error: #{e}"
+  end
 end

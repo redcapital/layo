@@ -1,3 +1,25 @@
+class String
+  def lol_integer?
+    self =~ /^-?\d+$/
+  end
+
+  def lol_string?
+    self[0] == '"'
+  end
+
+  def lol_float?
+    self =~ /^-?\d+\.\d+?$/
+  end
+
+  def lol_boolean?
+    self == 'WIN' || self == 'FAIL'
+  end
+
+  def lol_identifier?
+    self =~ /^[a-zA-Z]\w*$/
+  end
+end
+
 module Layo
   class Tokenizer
     include Peekable
@@ -10,16 +32,15 @@ module Layo
       reset
     end
 
-    def reset
-      @lexer.reset
-      super
-    end
-
+    # Checks that following n tokens have the same types as in given 'types'
+    # array. Each element of 'types' can be either a symbol or array of symbols
+    # This method does not modify peek index
     def try(*types)
       index = @peek_index
       result = true
       types.each do |type|
-        unless peek[:type] == type
+        allowed = type.is_a?(Array) ? type : [type]
+        unless allowed.include?(peek[:type])
           result = false
           break
         end
@@ -29,7 +50,7 @@ module Layo
     end
 
     def init_token_table
-      @token_table = {:list => {}}
+      @token_table = { :list => {} }
       ['HAI', 'KTHXBYE', 'NOOB', 'TROOF', 'NUMBR', 'NUMBAR',
         'YARN', 'I HAS A', 'ITZ', 'R', 'SUM OF', 'DIFF OF', 'PRODUKT OF',
         'QUOSHUNT OF', 'MOD OF', 'BIGGR OF', 'SMALLR OF', 'BOTH OF', 'EITHER OF',
@@ -46,10 +67,10 @@ module Layo
           root[lexeme][:list] = {} unless root[lexeme].has_key?(:list)
           root = root[lexeme][:list]
         end
-        root[lexemes.last] = {:match => t.gsub(' ', '_').downcase.to_sym}
+        root[lexemes.last] = { match: t.gsub(' ', '_').downcase.to_sym }
       end
-      @token_table[:list]["\n"] = {:match => :newline}
-      @token_table[:list]['!'] = {:match => :exclamation}
+      @token_table[:list]["\n"] = { match: :newline }
+      @token_table[:list]['!'] = { match: :exclamation }
     end
 
     def match_longest(lexeme, root)
@@ -64,54 +85,35 @@ module Layo
       best_match
     end
 
-    def is_string(lexeme)
-      lexeme[0] == '"'
-    end
-
-    def is_float(lexeme)
-      lexeme =~ /^-?\d+\.\d+$/
-    end
-
-    def is_integer(lexeme)
-      lexeme =~ /^-?\d+$/
-    end
-
-    def is_boolean(lexeme)
-      lexeme == 'WIN' or lexeme == 'FAIL'
-    end
-
-    def is_identifier(lexeme)
-      lexeme =~ /^[a-zA-Z]\w*$/
-    end
-
+    # Tries to convert next lexeme in lexeme stream into token and return it
     def next_item
       lexeme, token = @lexer.next, nil
       if lexeme[0].nil?
-        token = {:type => :eof}
-      elsif is_string(lexeme[0])
-        token = {:type => :string, :data => lexeme[0][1..-2]}
-      elsif is_integer(lexeme[0])
-        token = {:type => :integer, :data => lexeme[0].to_i}
-      elsif is_float(lexeme[0])
-        token = {:type => :float, :data => lexeme[0].to_f}
-      elsif is_boolean(lexeme[0])
-        token = {:type => :boolean, :data => (lexeme[0] == 'WIN')}
+        token = { type: :eof }
+      elsif lexeme[0].lol_string?
+        token = { type: :string, data: lexeme[0][1..-2] }
+      elsif lexeme[0].lol_integer?
+        token = { type: :integer, data: lexeme[0].to_i }
+      elsif lexeme[0].lol_float?
+        token = { type: :float, data: lexeme[0].to_f }
+      elsif lexeme[0].lol_boolean?
+        token = { type: :boolean, data: (lexeme[0] == 'WIN') }
       else
         # Try to match keyword
         token_type = match_longest(lexeme[0], @token_table)
         unless token_type.nil?
-          token = {:type => token_type}
+          token = { type: token_type }
           # Consume all peeked lexemes
           token_type.to_s.count('_').times { @lexer.next }
         else
           # Try to match identifier
-          if is_identifier(lexeme[0])
-            token = {:type => :identifier, :data => lexeme[0]}
+          if lexeme[0].lol_identifier?
+            token = { type: :identifier, data: lexeme[0] }
           end
         end
       end
       raise UnknownTokenError.new(lexeme) if token.nil?
-      token.merge(:line => lexeme[1], :pos => lexeme[2])
+      token.merge(line: lexeme[1], pos: lexeme[2])
     end
   end
 end
