@@ -1,16 +1,16 @@
 module Layo
   class Interpreter
-    attr_accessor :parser, :input, :output
+    attr_accessor :input, :output
 
-    def initialize(parser, input = STDIN, output = STDOUT)
-      @parser, @input, @output = parser, input, output
+    def initialize(input = STDIN, output = STDOUT)
+      @input, @output = input, output
     end
 
-    def interpret
+    # Interprets program given as an AST node
+    def interpret(program)
       # We should gather all function definitions along with their bodies
       # beforehand so we could call them wherever a call appears
       @functions = {}
-      program = @parser.parse
       program.block.each do |statement|
         if statement.type == 'function'
           @functions[statement.name] = {

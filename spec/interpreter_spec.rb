@@ -5,19 +5,16 @@ include Layo
 
 describe Interpreter do
   before do
-    @lexer = Lexer.new
-    @output = StringIO.new
-    @interpreter = Interpreter.new(Parser.new(Tokenizer.new(@lexer)))
-    @interpreter.output = @output
+    @interpreter = Interpreter.new
+    @interpreter.output = StringIO.new
   end
 
   it "should correctly interpret test programs" do
     mask = File.join(File.dirname(__FILE__), 'source', '**', '*.lol')
     Dir.glob(mask).each do |source_filename|
-      # Reset everything
-      @lexer.input = File.new(source_filename)
-      @interpreter.parser.reset
-      @output.string = ''
+      lexer = Lexer.new(File.new(source_filename))
+      parser = Parser.new(Tokenizer.new(lexer))
+      @interpreter.output.string = ''
 
       # Supply input stream if provided
       if File.exist?(infile = source_filename[0..-4] + 'in')
@@ -27,28 +24,28 @@ describe Interpreter do
 
       # Get contents of output file (if provided) to assert later
       if File.exist?(outfile = source_filename[0..-4] + 'out')
-        output = File.open(outfile) do |file|
+        expected_output = File.open(outfile) do |file|
           file.read
         end
       else
-        output = nil
+        expected_output = nil
       end
 
       # Execute the program
       begin
-        @interpreter.interpret
+        @interpreter.interpret(parser.parse)
       rescue RuntimeError, SyntaxError => e
         puts "Error interpreting #{source_filename}"
         puts e.message
       end
 
       # Assertions
-      unless output.nil?
-        assert_equal output, @output.string, "File: #{source_filename}"
+      if expected_output
+        assert_equal expected_output, @interpreter.output.string, "File: #{source_filename}"
       end
 
       # Cleanup
-      @lexer.input.close
+      lexer.input.close
       infile.close if infile.instance_of?(File)
     end
   end

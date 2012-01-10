@@ -32,11 +32,6 @@ module Layo
       reset
     end
 
-    def reset
-      @lexer.reset
-      super
-    end
-
     # Checks that following n tokens have the same types as in given 'types'
     # array. Each element of 'types' can be either a symbol or array of symbols
     # This method does not modify peek index

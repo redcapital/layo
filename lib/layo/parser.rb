@@ -4,23 +4,14 @@ module Layo
     attr_reader :functions
 
     def initialize(tokenizer)
-      self.tokenizer = tokenizer
-    end
-
-    def reset
-      @functions = {}
-      @tokenizer.reset
-    end
-
-    def tokenizer=(tokenizer)
-      @tokenizer = tokenizer
-      reset
+      @tokenizer, @functions = tokenizer, {}
     end
 
     # Function declarations should be parsed first in order to properly
     # parse argument list and allow calling functions before their definition.
     # So this method should be called as the first pass before parsing begins
     def parse_function_declarations
+      @functions = {}
       @tokenizer.reset_peek
       until (token = @tokenizer.peek)[:type] == :eof
         if token[:type] == :how_duz_i
