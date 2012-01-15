@@ -69,8 +69,6 @@ module Layo
         end
         root[lexemes.last] = { match: t.gsub(' ', '_').downcase.to_sym }
       end
-      @token_table[:list]["\n"] = { match: :newline }
-      @token_table[:list]['!'] = { match: :exclamation }
     end
 
     def match_longest(lexeme, root)
@@ -98,6 +96,10 @@ module Layo
         token = { type: :float, data: lexeme[0].to_f }
       elsif lexeme[0].lol_boolean?
         token = { type: :boolean, data: (lexeme[0] == 'WIN') }
+      elsif lexeme[0] == '!'
+        token = { type: :exclamation }
+      elsif lexeme[0] == "\n"
+        token = { type: :newline }
       else
         # Try to match keyword
         token_type = match_longest(lexeme[0], @token_table)
