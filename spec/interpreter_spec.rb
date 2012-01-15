@@ -13,6 +13,7 @@ describe Interpreter do
     mask = File.join(File.dirname(__FILE__), 'source', '**', '*.lol')
     Dir.glob(mask).each do |source_filename|
       lexer = Lexer.new(File.new(source_filename))
+      lexer.input.set_encoding(Encoding::UTF_8)
       parser = Parser.new(Tokenizer.new(lexer))
       @interpreter.output.string = ''
 
