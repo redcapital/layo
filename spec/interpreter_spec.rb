@@ -50,4 +50,17 @@ describe Interpreter do
       infile.close if infile.instance_of?(File)
     end
   end
+
+  describe "#eval_print_stmt" do
+    it "should print trailing newline" do
+      string = Ast::Expression.new('constant', { vtype: :string, value: "a\n" })
+      stmt = Ast::Statement.new('print', {
+        expressions: [string], suppress: false
+      })
+
+      @interpreter.eval_print_stmt(stmt)
+
+      @interpreter.output.string.must_equal "a\n\n"
+    end
+  end
 end

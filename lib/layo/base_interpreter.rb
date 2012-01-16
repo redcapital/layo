@@ -146,11 +146,8 @@ module Layo
       stmt.expressions.each do |expr|
         text << cast(eval_expr(expr), :yarn)
       end
-      if stmt.suppress
-        @output.print text
-      else
-        @output.puts text
-      end
+      text << "\n" unless stmt.suppress
+      @output.print(text)
     end
 
     def eval_return_stmt(stmt)
