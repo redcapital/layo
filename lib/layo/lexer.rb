@@ -38,7 +38,7 @@ module Layo
     def next_item
       return @last_lexeme if @last_lexeme[0].nil?
       while true
-        @line = next_line if @line_no.zero? || @pos > @line.length - 1
+        @line = next_line if buffer_empty?
         if @line.nil?
           lexeme = [nil, @line_no, 1]
           break
@@ -157,6 +157,11 @@ module Layo
             match
           end
         end
+    end
+
+    # Returns true if input buffer is fully processed
+    def buffer_empty?
+      @line_no.zero? || @pos > @line.length - 1
     end
   end
 end
