@@ -76,7 +76,6 @@ module Layo
       @vtable['IT'] = eval_expr(stmt.expression)
     end
 
-    def eval_function_stmt(stmt); end
 
     def eval_condition_stmt(stmt)
       if cast(@vtable['IT'], :troof)

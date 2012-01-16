@@ -18,5 +18,8 @@ module Layo
     def eval_program(program)
       with_guard { eval_block(program.block) }
     end
+
+    # Don't do anything because function table is already ready
+    def eval_function_stmt(stmt); end
   end
 end
