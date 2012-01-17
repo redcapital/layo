@@ -2,11 +2,12 @@ require 'base64'
 
 Gem::Specification.new do |s|
   s.name = 'layo'
-  s.version = '1.0.0'
+  s.version = '1.1.0'
   s.summary = 'LOLCODE interpreter written in plain Ruby'
   s.description = <<-EOF
     Layo is a LOLCODE interpreter written in plain Ruby. It tries to conform to
     the LOLCODE 1.2 specification and supports everything described there.
+    Supports interactive mode.
   EOF
   s.required_ruby_version = '>= 1.9.2'
   s.add_development_dependency 'mocha', '~> 0.10.0'
