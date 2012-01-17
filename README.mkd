@@ -5,7 +5,7 @@ Layo is a LOLCODE interpreter written in Ruby. It tries to conform to the
 everything described there. I purposely did not use any parser generators
 such as `Racc` for this project.
 
-Latest version is 1.0.0
+Latest version is 1.1.0
 
 # Usage
 
@@ -16,26 +16,51 @@ gem install layo
 layo program.lol
 ```
 
-If you don't want to install the gem, you can download sources, unzip somewhere
- and run from project's root:
+If you don't want to install the gem, you can download sources, extract somewhere
+ and run from the project's root:
 
 `bin/layo program.lol`
 
+Layo treats source files as UTF-8 encoded, if your file contains non-ascii
+characters, be sure to encode it as UTF-8.
+
+Without arguments Layo works in interactive mode, i.e. it executes statements
+read from a standard input. A sample session:
+
+```
+[galymzhan@g8host layo]$ bin/layo
+Layo version 1.1.0
+Press Control-C to exit
+ > VISIBLE "HAI WORLD!"
+HAI WORLD!
+ > I HAS A animal ITZ "cat"
+ > BOTH SAEM animal AN "cat", O RLY?
+YA RLY, VISIBLE "I HAV A CAT"
+NO WAI, VISIBLE "J00 SUX"
+OIC
+I HAV A CAT
+ > ^CExiting
+```
+
 Oh, and there are tests too. In order to run them, you have to install `mocha`:
-`gem install mocha`. Then go to project's root and execute `rake test`.
+`gem install mocha`. Then go to the project's root and execute `rake test`.
 
 # Requirements
 
 * Ruby >= 1.9.2
 * [Mocha](http://mocha.rubyforge.org/) for development
 
-# Example program
+# LOLCODE examples
+
+Classical hello world:
 
 ```
 HAI 1.2
 VISIBLE "Hello world!"
 KTHXBYE
 ```
+
+For more examples see `examples` and `spec/source` directories.
 
 # Grammar
 
