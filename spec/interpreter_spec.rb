@@ -13,6 +13,7 @@ describe Interpreter do
     mask = File.join(File.dirname(__FILE__), 'source', '**', '*.lol')
     Dir.glob(mask).each do |source_filename|
       lexer = Lexer.new(File.new(source_filename))
+      lexer.input.set_encoding(Encoding::UTF_8)
       parser = Parser.new(Tokenizer.new(lexer))
       @interpreter.output.string = ''
 
@@ -47,6 +48,19 @@ describe Interpreter do
       # Cleanup
       lexer.input.close
       infile.close if infile.instance_of?(File)
+    end
+  end
+
+  describe "#eval_print_stmt" do
+    it "should print trailing newline" do
+      string = Ast::Expression.new('constant', { vtype: :string, value: "a\n" })
+      stmt = Ast::Statement.new('print', {
+        expressions: [string], suppress: false
+      })
+
+      @interpreter.eval_print_stmt(stmt)
+
+      @interpreter.output.string.must_equal "a\n\n"
     end
   end
 end

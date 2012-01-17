@@ -100,9 +100,13 @@ module Layo
       nil
     end
 
-    def parse_statement(name)
+    def parse_statement(name = nil)
       token = @tokenizer.peek
       @tokenizer.unpeek
+      name = next_statement unless name
+      unless name
+        raise SyntaxError.new(token[:line], token[:pos], 'Expected statement')
+      end
       statement = send("parse_#{name}_statement".to_sym)
       expect_token(:newline)
       statement.line = token[:line]

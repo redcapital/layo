@@ -5,18 +5,22 @@ $:.unshift File.join(File.dirname(__FILE__), *%w[.. lib])
 require 'layo'
 
 if ARGV.empty?
-  puts 'Usage: layo [filename]'
-  exit
-end
-raise "File #{ARGV[0]} does not exist" unless File.exists?(ARGV[0])
-File.open(ARGV[0]) do |f|
-  parser = Layo::Parser.new(Layo::Tokenizer.new(Layo::Lexer.new(f)))
-  interpreter = Layo::Interpreter.new
-  begin
-    interpreter.interpret(parser.parse)
-  rescue Layo::SyntaxError => e
-    $stderr.puts "Syntax error: #{e}"
-  rescue Layo::RuntimeError => e
-    $stderr.puts "Runtime error: #{e}"
+  parser = Layo::Parser.new(Layo::Tokenizer.new(Layo::Lexer.new(STDIN)))
+  interpreter = Layo::InteractiveInterpreter.new(parser)
+  puts "Layo version #{Layo::VERSION}"
+  interpreter.interpret
+else
+  raise "File #{ARGV[0]} does not exist" unless File.exists?(ARGV[0])
+  File.open(ARGV[0]) do |f|
+    f.set_encoding(Encoding::UTF_8)
+    parser = Layo::Parser.new(Layo::Tokenizer.new(Layo::Lexer.new(f)))
+    interpreter = Layo::Interpreter.new
+    begin
+      interpreter.interpret(parser.parse)
+    rescue Layo::SyntaxError => e
+      $stderr.puts "Syntax error: #{e}"
+    rescue Layo::RuntimeError => e
+      $stderr.puts "Runtime error: #{e}"
+    end
   end
 end
