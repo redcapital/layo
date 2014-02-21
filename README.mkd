@@ -1,7 +1,7 @@
 # About
 
 Layo is a LOLCODE interpreter written in Ruby. It tries to conform to the
-[LOLCODE 1.2 specification](http://lolcode.com/specs/1.2) and supports
+[LOLCODE 1.2 specification](http://lolcode.org/1.2_spec.html) and supports
 everything described there. I purposely did not use any parser generators
 such as `Racc` for this project.
 
