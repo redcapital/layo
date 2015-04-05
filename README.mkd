@@ -1,11 +1,8 @@
 # About
 
 Layo is a LOLCODE interpreter written in Ruby. It tries to conform to the
-[LOLCODE 1.2 specification](http://lolcode.org/1.2_spec.html) and supports
-everything described there. I purposely did not use any parser generators
-such as `Racc` for this project.
-
-Latest version is 1.1.0
+[LOLCODE 1.2 specification](https://github.com/justinmeza/lolcode-spec/blob/master/v1.2/lolcode-spec-v1.2.md) and supports
+everything described there.
 
 # Usage
 
@@ -64,8 +61,7 @@ For more examples see `examples` and `spec/source` directories.
 
 # Grammar
 
-Layo uses the following context-free grammar in Extended Backus-Naur Form
-to parse programs:
+Layo uses the following grammar to parse programs:
 
 ```
 Program = "HAI 1.2" , Newline , Block , "KTHXBYE" ;
@@ -122,7 +118,3 @@ NaryExpression = ( "ALL OF" | "ANY OF" | "SMOOSH" ) ,
   Expression , Operand , { Operand } ;
 UnaryExpression = "NOT" , Expression ;
 ```
-
-# License
-
-See LICENSE
